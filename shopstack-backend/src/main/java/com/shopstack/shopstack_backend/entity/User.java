@@ -23,6 +23,13 @@ public class User {
     @Column(unique = true)
     private String email;
     private String password;
+    //for profile page
+    private String phoneNumber;
+    private String address;
+    private String city;
+    private String state;
+    private String pincode;
+    private String country;
     @Enumerated(EnumType.STRING)//java is case - sensitive and hence string is a constant inside the enumtype class
     private Role role;
 
@@ -44,6 +51,30 @@ public class User {
         return role;
     }
 
+        public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public String getPincode() {
+        return pincode;
+    }
+
+    public String getCountry() {
+        return country;
+    }
+
     //setters
     public void setId(Long id){
         this.id = id;
@@ -60,6 +91,29 @@ public class User {
     public void setRole(Role role){
         this.role = role;
     }
-    
+    public void setPhoneNumber(String phoneNumber) {
+    this.phoneNumber = phoneNumber;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public void setPincode(String pincode) {
+        this.pincode = pincode;
+    }
+
+    public void setCountry(String country) {
+        this.country = country;
+    }
+        
 
 }

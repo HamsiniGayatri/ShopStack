@@ -1,5 +1,6 @@
 package com.shopstack.shopstack_backend.controller;
 
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -33,10 +34,13 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public String login(@RequestBody LoginRequest request){
+    public ResponseEntity<User> login(@RequestBody User user){
 
-        User user=userService.login(request.getEmail(),request.getPassword());
+        User existingUser = userService.login(
+                user.getEmail(),
+                user.getPassword()
+        );
 
-        return "Login Successful. Welcome " + user.getName();
+        return ResponseEntity.ok(existingUser);
     }
 }

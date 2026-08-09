@@ -18,22 +18,48 @@ function VendorLogin() {
     };
 
     const handleLogin = async (e) => {
-        e.preventDefault();
+    e.preventDefault();
 
-        try {
-            const response = await api.post("/auth/login", loginData);
+    try {
 
-            alert(response.data);
+        const response = await api.post(
+            "/auth/login",
+            loginData
+        );
 
-            // Later:
-            // navigate("/vendor/dashboard");
 
-        } catch (error) {
-            console.log(error);
-            alert("Vendor Login Failed");
-        }
-    };
+        // Store complete user
+        localStorage.setItem(
+            "user",
+            JSON.stringify(response.data)
+        );
 
+
+        localStorage.setItem(
+            "userId",
+            response.data.id
+        );
+
+
+        localStorage.setItem(
+            "role",
+            response.data.role
+        );
+
+
+        alert("Login Successful");
+
+        window.location.href="/vendor/products";
+
+
+    } catch(error) {
+
+        console.log(error);
+
+        alert("Vendor Login Failed");
+
+    }
+};
     return (
         <div className="auth-page">
 

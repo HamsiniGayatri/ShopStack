@@ -8,8 +8,10 @@ function Register() {
     const [user, setUser] = useState({
         name: "",
         email: "",
-        password: ""
+        password: "",
+        role: ""
     });
+    //axios.post("http://localhost:8080/auth/register", userData);
 
     const handleChange = (e) => {
         setUser({

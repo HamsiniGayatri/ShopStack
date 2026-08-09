@@ -4,6 +4,10 @@ import Login from "./Pages/Login";
 import RoleSelection from "./Pages/RoleSelection";
 import VendorLogin from "./Pages/VendorLogin";
 import VendorRegister from "./Pages/VendorRegister";
+import Profile from "./Pages/Profile";
+import VendorDashboard from "./Pages/Vendor/VendorDashboard";
+import AddProduct from "./Pages/Vendor/AddProduct";
+import VendorProductList from "./Pages/Vendor/VendorProductList";
 
 function App() {
 
@@ -20,6 +24,13 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
         <Route path="/vendor/login" element={<VendorLogin />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/vendor/dashboard" element={<VendorDashboard />} />
+        <Route path="/vendor/add-product" element={<AddProduct />} />
+        <Route 
+        path="/vendor/products" 
+        element={<VendorProductList />} 
+        />
       </Routes>
 
     </BrowserRouter>

@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.stereotype.Service;
 import com.shopstack.shopstack_backend.repository.UserRepository;
 import com.shopstack.shopstack_backend.entity.User;
+
 //import com.shopstack.shopstack_backend.entity.User;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
@@ -18,6 +19,7 @@ public class UserService {
     //private final UserRepository userRepository;
     private final BCryptPasswordEncoder encoder;
 
+    
     //When creating UserService, Spring, please provide UserRepository.
     public UserService(UserRepository userRepository, BCryptPasswordEncoder encoder){
         this.userRepository = userRepository;
@@ -50,6 +52,44 @@ public class UserService {
         }
 
         return user.get();
+
     }
+
+    public User updateProfile(Long id, User updatedUser) {
+
+    Optional<User> existingUser = userRepository.findById(id);
+
+    if (existingUser.isEmpty()) {
+        throw new RuntimeException("User not found");
+    }
+
+    User user = existingUser.get();
+
+    user.setName(updatedUser.getName());
+    user.setEmail(updatedUser.getEmail());
+    user.setPhoneNumber(updatedUser.getPhoneNumber());
+    user.setAddress(updatedUser.getAddress());
+    user.setCity(updatedUser.getCity());
+    user.setState(updatedUser.getState());
+    user.setPincode(updatedUser.getPincode());
+    user.setCountry(updatedUser.getCountry());
+
+    return userRepository.save(user);
+}
+
+    public User getProfile(Long id) {
+
+    Optional<User> user = userRepository.findById(id);
+
+    if(user.isEmpty()) {
+        throw new RuntimeException("User not found");
+    }
+
+    return user.get();
+    }
+
+    
+
+
 
 }
