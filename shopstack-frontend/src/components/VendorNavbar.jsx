@@ -2,39 +2,56 @@ import { Link } from "react-router-dom";
 import "./VendorNavbar.css";
 
 function VendorNavbar() {
-  return (
-    <nav className="vendor-navbar">
 
-      <div className="vendor-logo">
-        ShopStack
-      </div>
+    return (
+        <nav className="vendor-navbar">
 
-      <ul className="vendor-nav-links">
+            <div className="vendor-logo">
+                ShopStack
+            </div>
 
-        <li>
-          <Link to="/vendor/dashboard">Dashboard</Link>
-        </li>
+            <ul className="vendor-nav-links">
 
-        <li>
-          <Link to="/vendor/add-product">Add Product</Link>
-        </li>
+                <li>
+                    <Link to="/vendor/dashboard">
+                        Dashboard
+                    </Link>
+                </li>
 
-        <li>
-          <Link to="/vendor/products">My Products</Link>
-        </li>
+                <li>
+                    <Link to="/vendor/add-product">
+                        Add Product
+                    </Link>
+                </li>
 
-        <li>
-          <Link to="/profile">Profile</Link>
-        </li>
+                <li>
+                    <Link to="/vendor/products">
+                        My Products
+                    </Link>
+                </li>
 
-        <li>
-          <Link to="/">Logout</Link>
-        </li>
+                <li>
+                    <Link to="/vendor/inventory">
+                        Inventory
+                    </Link>
+                </li>
 
-      </ul>
+                <li>
+                    <Link to="/vendor/profile">
+                        Profile
+                    </Link>
+                </li>
 
-    </nav>
-  );
+                <li>
+                    <Link to="/">
+                        Logout
+                    </Link>
+                </li>
+
+            </ul>
+
+        </nav>
+    );
 }
 
 export default VendorNavbar;

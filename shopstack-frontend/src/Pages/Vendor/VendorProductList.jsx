@@ -7,57 +7,87 @@ function VendorProductList() {
 
     const [products, setProducts] = useState([]);
 
-
-    useEffect(() => {
-
-    const vendorId = localStorage.getItem("userId");
-
-        api.get(`/products/vendor/${vendorId}`)
-            .then((res) => {
-                setProducts(res.data);
-            })
-            .catch((err) => {
-                console.log(err);
-            });
-
-    }, []);
-
-
     const fetchProducts = async () => {
 
         try {
 
-            const vendorId = Number(
-                localStorage.getItem("userId")
-            );
+            const vendorId = localStorage.getItem("userId");
+
+            if (!vendorId) {
+                console.log("Vendor ID not found");
+                return;
+            }
 
             const response = await api.get(
                 `/products/vendor/${vendorId}`
             );
 
+            console.log("Vendor products:", response.data);
+
             setProducts(response.data);
 
-        } catch(error) {
+        } catch (error) {
 
-            console.log(error);
+            console.error(
+                "Error fetching products:",
+                error
+            );
 
         }
 
     };
 
+
+    useEffect(() => {
+
+        fetchProducts();
+
+    }, []);
+
+
     const deleteProduct = async (id) => {
 
         try {
 
-            await api.delete(`/products/${id}`);
+            console.log("Deleting product:", id);
 
-            alert("Product deleted");
+            const response = await api.delete(
+                `/products/${id}`
+            );
 
-            fetchProducts();
+            console.log(
+                "Delete response:",
+                response.data
+            );
 
-        } catch(error) {
+            alert("Product deleted successfully");
 
-            console.log(error);
+            await fetchProducts();
+
+        } catch (error) {
+
+            console.error(
+                "Delete product error:",
+                error
+            );
+
+            if (error.response) {
+
+                console.log(
+                    "Status:",
+                    error.response.status
+                );
+
+                console.log(
+                    "Response:",
+                    error.response.data
+                );
+
+            }
+
+            alert(
+                "Unable to delete product"
+            );
 
         }
 
@@ -68,67 +98,69 @@ function VendorProductList() {
 
         <>
 
-        <VendorNavbar />
+            <VendorNavbar />
 
-        <div className="product-list-container">
+            <div className="product-list-container">
 
-            <h1></h1>
+                <h1>My Products</h1>
 
+                <div className="product-grid">
 
-            <div className="product-grid">
+                    {products.length === 0 ? (
 
-            {
-                products.map((product)=>(
+                        <p>No products available.</p>
 
-                    <div className="product-card" key={product.id}>
+                    ) : (
 
+                        products.map((product) => (
 
-                        <img
-                            src={product.imageUrl}
-                            alt={product.productName}
-                        />
+                            <div
+                                className="product-card"
+                                key={product.id}
+                            >
 
+                                <img
+                                    src={product.imageUrl}
+                                    alt={product.productName}
+                                />
 
-                        <h3>
-                            {product.productName}
-                        </h3>
+                                <h3>
+                                    {product.productName}
+                                </h3>
 
+                                <p>
+                                    Brand: {product.brand}
+                                </p>
 
-                        <p>
-                            Brand: {product.brand}
-                        </p>
+                                <p>
+                                    Price: ₹{product.price}
+                                </p>
 
+                                <p>
+                                    Stock: {product.stockQuantity}
+                                </p>
 
-                        <p>
-                            Price: ₹{product.price}
-                        </p>
+                                <p>
+                                    Status: {product.status}
+                                </p>
 
+                                <button
+                                    onClick={() =>
+                                        deleteProduct(product.id)
+                                    }
+                                >
+                                    Delete
+                                </button>
 
-                        <p>
-                            Stock: {product.stockQuantity}
-                        </p>
+                            </div>
 
+                        ))
 
-                        <p>
-                            Status: {product.status}
-                        </p>
+                    )}
 
-
-                        <button
-                            onClick={()=>deleteProduct(product.id)}
-                        >
-                            Delete
-                        </button>
-
-
-                    </div>
-
-                ))
-            }
+                </div>
 
             </div>
-
-        </div>
 
         </>
 

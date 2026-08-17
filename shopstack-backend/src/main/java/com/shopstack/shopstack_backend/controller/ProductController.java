@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/products")
@@ -54,6 +55,14 @@ public class ProductController {
         );
     }
 
+    @GetMapping("/available")
+public ResponseEntity<List<Product>> getAvailableProducts() {
+
+    return ResponseEntity.ok(
+            productService.getAvailableProducts()
+    );
+}
+
 
     // Update Product
     @PutMapping("/{id}")
@@ -75,4 +84,27 @@ public class ProductController {
 
         return ResponseEntity.ok("Product deleted successfully");
     }
+
+    @PutMapping("/{id}/stock")
+        public Product updateStock(
+                @PathVariable Long id,
+                @RequestBody Map<String, Integer> data) {
+
+            return productService.updateStock(
+                    id,
+                    data.get("stockQuantity")
+            );
+        }
+
+
+        @PutMapping("/{id}/price")
+            public Product updatePrice(
+                    @PathVariable Long id,
+                    @RequestBody Product updatedProduct) {
+
+                return productService.updatePrice(
+                    id,
+                    updatedProduct.getPrice().doubleValue()
+                );
+            }
 }

@@ -2,12 +2,18 @@ package com.shopstack.shopstack_backend.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import com.shopstack.shopstack_backend.entity.ProductAvailability;
 
 import jakarta.persistence.*;
+
+
 
 @Entity
 @Table(name = "products")
 public class Product {
+
+    @Enumerated(EnumType.STRING)
+private ProductAvailability availability;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,25 +45,53 @@ public class Product {
 
     private LocalDateTime updatedAt;
 
+
+    // =========================================================
+    // Constructor
+    // =========================================================
+
     public Product() {
     }
 
+
+    // =========================================================
+    // Before Insert
+    // =========================================================
+
     @PrePersist
     public void prePersist() {
+
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
 
-        if (status == null) {
-            status = ProductStatus.PENDING;
+        if (availability == null) {
+            availability = ProductAvailability.ACTIVE;
         }
     }
 
+
+    // =========================================================
+    // Before Update
+    // =========================================================
+
     @PreUpdate
     public void preUpdate() {
+
         updatedAt = LocalDateTime.now();
     }
 
+
+    public ProductAvailability getAvailability() {
+        return availability;
+    }
+
+    public void setAvailability(ProductAvailability availability) {
+        this.availability = availability;
+    }
+
+    // =========================================================
     // Getters
+    // =========================================================
 
     public Long getId() {
         return id;
@@ -107,7 +141,10 @@ public class Product {
         return updatedAt;
     }
 
+
+    // =========================================================
     // Setters
+    // =========================================================
 
     public void setId(Long id) {
         this.id = id;

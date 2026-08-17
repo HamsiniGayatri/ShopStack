@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import "./Auth.css";
 
-
 function VendorRegister() {
+
+    const navigate = useNavigate();
 
     const [vendor, setVendor] = useState({
         businessName: "",
@@ -16,56 +17,158 @@ function VendorRegister() {
         confirmPassword: ""
     });
 
+    const [loading, setLoading] = useState(false);
 
     const handleChange = (e) => {
+
         setVendor({
             ...vendor,
             [e.target.name]: e.target.value
         });
-    };
 
+    };
 
     const handleRegister = async (e) => {
 
         e.preventDefault();
 
+        // =========================================
+        // VALIDATION
+        // =========================================
 
-        if(vendor.password !== vendor.confirmPassword) {
-            alert("Passwords do not match");
+        if (!vendor.businessName.trim()) {
+            alert("Please enter your business name.");
             return;
         }
 
+        if (!vendor.ownerName.trim()) {
+            alert("Please enter the owner's name.");
+            return;
+        }
+
+        if (!vendor.email.trim()) {
+            alert("Please enter your business email.");
+            return;
+        }
+
+        if (!vendor.phone.trim()) {
+            alert("Please enter your phone number.");
+            return;
+        }
+
+        if (vendor.password.length < 6) {
+            alert("Password must contain at least 6 characters.");
+            return;
+        }
+
+        if (vendor.password !== vendor.confirmPassword) {
+            alert("Passwords do not match.");
+            return;
+        }
 
         try {
 
-            const response = await api.post("/auth/register", {
+            setLoading(true);
 
-                name: vendor.ownerName,
+            // =========================================
+            // REGISTER USER AS VENDOR
+            // =========================================
 
-                email: vendor.email,
+            const registrationData = {
+
+                name: vendor.ownerName.trim(),
+
+                email: vendor.email.trim(),
 
                 password: vendor.password,
 
                 role: "VENDOR"
 
-            });
+            };
 
+            console.log(
+                "Vendor registration request:",
+                registrationData
+            );
 
-            console.log(response.data);
+            const response = await api.post(
+                "/auth/register",
+                registrationData
+            );
 
-            alert("Vendor Registration Successful");
+            console.log(
+                "Vendor registration response:",
+                response.data
+            );
 
+            alert(
+                "Vendor Registration Successful. Please login."
+            );
 
-        } catch(error) {
+            navigate("/vendor/login");
 
-            console.log(error);
+        } catch (error) {
 
-            alert("Vendor Registration Failed");
+            console.error(
+                "================================="
+            );
+
+            console.error(
+                "VENDOR REGISTRATION ERROR"
+            );
+
+            console.error(
+                "Status:",
+                error.response?.status
+            );
+
+            console.error(
+                "Response:",
+                error.response?.data
+            );
+
+            console.error(
+                "Message:",
+                error.message
+            );
+
+            console.error(
+                "================================="
+            );
+
+            // =========================================
+            // SHOW ACTUAL BACKEND ERROR
+            // =========================================
+
+            const backendMessage =
+                error.response?.data?.message ||
+                error.response?.data?.error ||
+                error.response?.data;
+
+            if (
+                typeof backendMessage === "string" &&
+                backendMessage.trim()
+            ) {
+
+                alert(
+                    backendMessage
+                );
+
+            } else {
+
+                alert(
+                    "Vendor registration failed. Check the browser console for the backend response."
+                );
+
+            }
+
+        } finally {
+
+            setLoading(false);
 
         }
 
     };
-
 
     return (
 
@@ -73,85 +176,66 @@ function VendorRegister() {
 
             <div className="auth-container">
 
+                <h2>
+                    Vendor Registration
+                </h2>
 
-                <h2>Vendor Registration</h2>
-
+                <p>
+                    Create your ShopStack vendor account
+                </p>
 
                 <form onSubmit={handleRegister}>
 
+                    {/* BUSINESS NAME */}
 
                     <input
-
                         type="text"
-
                         name="businessName"
-
                         placeholder="Business Name"
-
                         value={vendor.businessName}
-
                         onChange={handleChange}
-
+                        required
                     />
 
-
+                    {/* OWNER NAME */}
 
                     <input
-
                         type="text"
-
                         name="ownerName"
-
                         placeholder="Owner Name"
-
                         value={vendor.ownerName}
-
                         onChange={handleChange}
-
+                        required
                     />
 
-
+                    {/* EMAIL */}
 
                     <input
-
                         type="email"
-
                         name="email"
-
                         placeholder="Business Email"
-
                         value={vendor.email}
-
                         onChange={handleChange}
-
+                        required
                     />
 
-
+                    {/* PHONE */}
 
                     <input
-
                         type="tel"
-
                         name="phone"
-
                         placeholder="Phone Number"
-
                         value={vendor.phone}
-
                         onChange={handleChange}
-
+                        required
                     />
 
-
+                    {/* BUSINESS TYPE */}
 
                     <select
-
                         name="businessType"
-
                         value={vendor.businessType}
-
                         onChange={handleChange}
-
                     >
 
                         <option value="Electronics">
@@ -198,65 +282,57 @@ function VendorRegister() {
                             Other
                         </option>
 
-
                     </select>
 
-
+                    {/* PASSWORD */}
 
                     <input
-
                         type="password"
-
                         name="password"
-
                         placeholder="Password"
-
                         value={vendor.password}
-
                         onChange={handleChange}
-
+                        required
                     />
 
-
+                    {/* CONFIRM PASSWORD */}
 
                     <input
-
                         type="password"
-
                         name="confirmPassword"
-
                         placeholder="Confirm Password"
-
                         value={vendor.confirmPassword}
-
                         onChange={handleChange}
-
+                        required
                     />
 
+                    {/* SUBMIT */}
 
+                    <button
+                        type="submit"
+                        disabled={loading}
+                    >
 
-                    <button type="submit">
-
-                        Register as Vendor
+                        {loading
+                            ? "Creating Account..."
+                            : "Register as Vendor"
+                        }
 
                     </button>
 
-
                 </form>
-
-
 
                 <p>
 
                     Already a vendor?
+
+                    {" "}
 
                     <Link to="/vendor/login">
                         Login
                     </Link>
 
                 </p>
-
-
 
                 <p>
 
@@ -266,7 +342,6 @@ function VendorRegister() {
 
                 </p>
 
-
             </div>
 
         </div>
@@ -274,6 +349,5 @@ function VendorRegister() {
     );
 
 }
-
 
 export default VendorRegister;
