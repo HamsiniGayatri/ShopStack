@@ -114,6 +114,21 @@ public class User {
     public void setCountry(String country) {
         this.country = country;
     }
+
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private VendorStatus vendorStatus = VendorStatus.ACTIVE;
+
+    public VendorStatus getVendorStatus() {
+        return vendorStatus;
+    }
+
+    public void setVendorStatus(VendorStatus vendorStatus) {
+        this.vendorStatus = vendorStatus;
+    }
+
+    
         
 
 }

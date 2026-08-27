@@ -18,6 +18,15 @@ import VendorInventory from "./Pages/Vendor/VendorInventory";
 //import Profile from "./Pages/Profile";
 import VendorProfile from "./Pages/Vendor/VendorProfile";
 import OrderDetails from "./components/customer/OrderDetails";
+import AdminLogin from "./Pages/AdminLogin";
+import AdminDashboard from "./Pages/Admin/AdminDashboard";
+import AdminVendorManagement from "./Pages/Admin/AdminVendorManagement";
+import AdminOrderMonitoring from "./Pages/Admin/AdminOrderMonitoring";
+import AdminVendorDetails from "./Pages/Admin/AdminVendorDetails";
+import AdminAnalytics from "./Pages/Admin/AdminAnalytics";
+import AdminCommissions from "./Pages/Admin/AdminCommissions";
+import AdminSystemMonitoring from "./Pages/Admin/AdminSystemMonitoring";
+import AdminReports from "./Pages/Admin/AdminReports";
 
 function App() {
 
@@ -98,7 +107,50 @@ function App() {
             path="/customer/orders/:id"
             element={<OrderDetails />}
         />
+
+        <Route path="/admin/login" element={<AdminLogin />} />
+
+        <Route
+            path="/admin/dashboard"
+            element={<AdminDashboard />}
+        />
+
+        <Route
+            path="/admin/vendors"
+            element={<AdminVendorManagement />}
+        />
+
+        <Route
+            path="/admin/orders"
+            element={<AdminOrderMonitoring />}
+        />
+
+        <Route
+            path="/admin/vendors/:id"
+            element={<AdminVendorDetails />}
+        />
+
+        <Route
+            path="/admin/analytics"
+            element={<AdminAnalytics />}
+        />
+
+        <Route
+            path="/admin/commissions"
+            element={<AdminCommissions />}
+        />
+
+        <Route
+            path="/admin/system-monitoring"
+            element={<AdminSystemMonitoring />}
+        />
+
+        <Route
+            path="/admin/reports"
+            element={<AdminReports />}
+        />
       </Routes>
+
 
     </BrowserRouter>
   );

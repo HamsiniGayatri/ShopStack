@@ -69,6 +69,8 @@ public class SecurityConfig {
 
                 .requestMatchers("/payments/**").permitAll()
 
+                .requestMatchers("/admin/**").permitAll()
+
                 .anyRequest().authenticated()
             );
 

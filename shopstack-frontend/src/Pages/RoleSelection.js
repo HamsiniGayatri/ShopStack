@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import "./Auth.css";
 
 function RoleSelection() {
@@ -27,6 +27,14 @@ function RoleSelection() {
                 >
                     Vendor
                 </button>
+
+
+               <p className="admin-text">
+                    Are you an administrator?{" "}
+                    <Link to="/admin/login" className="admin-login-link">
+                        Admin Login
+                    </Link>
+                </p>
 
             </div>
 

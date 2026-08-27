@@ -33,5 +33,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findByAvailabilityAndStockQuantityGreaterThan(
         ProductAvailability availability,
         Integer stockQuantity
-);
+        );
+
+
+        long countByVendorId(Long vendorId);
+
+        long countByVendorIdAndAvailability(
+                Long vendorId,
+                ProductAvailability availability
+        );
 }
