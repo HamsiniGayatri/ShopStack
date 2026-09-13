@@ -15,99 +15,155 @@ import java.util.List;
 @Service
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
+        private final OrderRepository orderRepository;
+        private final ProductRepository productRepository;
+        private final CouponService couponService;
 
     public OrderService(
-            OrderRepository orderRepository,
-            ProductRepository productRepository) {
+        OrderRepository orderRepository,
+        ProductRepository productRepository,
+        CouponService couponService) {
 
-        this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
-    }
+    this.orderRepository = orderRepository;
+    this.productRepository = productRepository;
+    this.couponService = couponService;
+}
 
 
     // =====================================================
     // CREATE ORDER
     // =====================================================
 
-    @Transactional
-    public Order createOrder(Order order) {
+// =====================================================
+// CREATE ORDER
+// =====================================================
 
-        order.setStatus("PENDING");
+@Transactional
+public Order createOrder(Order order) {
 
-        order.setPaymentStatus("PENDING");
+    order.setStatus("PENDING");
 
-        order.setPaymentMethod("RAZORPAY");
+    order.setPaymentStatus("PENDING");
 
-        order.setOrderDate(LocalDateTime.now());
+    order.setPaymentMethod("RAZORPAY");
 
-
-        if (order.getItems() != null) {
-
-            for (OrderItem item : order.getItems()) {
-
-                if (item.getProduct() == null ||
-                        item.getProduct().getId() == null) {
-
-                    throw new RuntimeException(
-                            "Product information is missing"
-                    );
-                }
-
-                Product product =
-                        productRepository.findById(
-                                item.getProduct().getId()
-                        ).orElseThrow(() ->
-                                new RuntimeException(
-                                        "Product not found"
-                                )
-                        );
+    order.setOrderDate(LocalDateTime.now());
 
 
-                // Check stock
+    // =================================================
+    // CALCULATE SUBTOTAL
+    // =================================================
 
-                if (product.getStockQuantity()
-                        < item.getQuantity()) {
-
-                    throw new RuntimeException(
-                            "Insufficient stock for "
-                                    + product.getProductName()
-                    );
-                }
+    double subtotal = 0;
 
 
-                // Store actual product
+    if (order.getItems() != null) {
 
-                item.setProduct(product);
+        for (OrderItem item : order.getItems()) {
 
+            if (item.getProduct() == null ||
+                    item.getProduct().getId() == null) {
 
-                // Store current product price
-
-                item.setPrice(
-                        product.getPrice().doubleValue()
+                throw new RuntimeException(
+                        "Product information is missing"
                 );
-
-
-                // Store vendor ID
-
-                if (product.getVendor() != null) {
-
-                    item.setVendorId(
-                            product.getVendor().getId()
-                    );
-                }
-
-
-                // Connect item to order
-
-                item.setOrder(order);
             }
+
+
+            Product product =
+                    productRepository.findById(
+                            item.getProduct().getId()
+                    ).orElseThrow(() ->
+                            new RuntimeException(
+                                    "Product not found"
+                            )
+                    );
+
+
+            // Check stock
+
+            if (product.getStockQuantity()
+                    < item.getQuantity()) {
+
+                throw new RuntimeException(
+                        "Insufficient stock for "
+                                + product.getProductName()
+                );
+            }
+
+
+            // Store actual product
+
+            item.setProduct(product);
+
+
+            // Store current product price
+
+            item.setPrice(
+                    product.getPrice().doubleValue()
+            );
+
+
+            // Store vendor ID
+
+            if (product.getVendor() != null) {
+
+                item.setVendorId(
+                        product.getVendor().getId()
+                );
+            }
+
+
+            // Connect item to order
+
+            item.setOrder(order);
+
+
+            // Calculate subtotal
+
+            subtotal +=
+                    item.getPrice()
+                            * item.getQuantity();
         }
-
-
-        return orderRepository.save(order);
     }
+
+
+    // =================================================
+    // APPLY COUPON
+    // =================================================
+
+    double discount = 0;
+
+
+    if (order.getCouponCode() != null &&
+            !order.getCouponCode().isBlank()) {
+
+        discount =
+                couponService.calculateDiscount(
+                        order.getCouponCode(),
+                        subtotal
+                );
+    }
+
+
+    // =================================================
+    // STORE DISCOUNT INFORMATION
+    // =================================================
+
+    order.setDiscountAmount(discount);
+
+
+    order.setTotalAmount(
+            subtotal - discount
+    );
+
+
+    // =================================================
+    // SAVE ORDER
+    // =================================================
+
+    return orderRepository.save(order);
+}
 
 
     // =====================================================
@@ -271,9 +327,22 @@ public class OrderService {
             );
         }
 
+            if (order.getCouponCode() != null &&
+        !order.getCouponCode().isBlank()) {
+
+    couponService.incrementUsage(
+            order.getCouponCode()
+    );
+}
+
+
 
         return orderRepository.save(order);
+
+
+        
     }
+
 
 
     // =====================================================

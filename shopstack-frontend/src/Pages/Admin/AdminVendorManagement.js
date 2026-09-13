@@ -1,37 +1,87 @@
+
 import { useEffect, useState } from "react";
-import api from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 import AdminLayout from "./AdminLayout";
 import "./AdminVendorManagement.css";
 
 function AdminVendorManagement() {
 
     const [vendors, setVendors] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const navigate = useNavigate();
 
     useEffect(() => {
 
-        const loadVendors = async () => {
-
-            try {
-
-                const response = await api.get("/admin/vendors");
-
-                console.log("ADMIN VENDORS:", response.data);
-
-                setVendors(response.data);
-
-            } catch (error) {
-
-                console.log("VENDOR MANAGEMENT ERROR:", error);
-
-            }
-        };
-
         loadVendors();
 
     }, []);
+
+    const loadVendors = async () => {
+
+        try {
+
+            const response =
+                await api.get("/admin/vendors");
+
+            console.log(
+                "ADMIN VENDORS:",
+                response.data
+            );
+
+            setVendors(response.data);
+
+        } catch (error) {
+
+            console.error(
+                "VENDOR MANAGEMENT ERROR:",
+                error
+            );
+
+        } finally {
+
+            setLoading(false);
+
+        }
+    };
+
+
+    const getStatusClass = (status) => {
+
+        if (!status) {
+            return "vendor-status";
+        }
+
+        return `vendor-status ${status.toLowerCase()}`;
+    };
+
+
+    const getStatusLabel = (status) => {
+
+        if (!status) {
+            return "UNKNOWN";
+        }
+
+        return status.replace("_", " ");
+
+    };
+
+
+    if (loading) {
+
+        return (
+
+            <AdminLayout>
+
+                <div className="admin-vendors-loading">
+                    Loading vendors...
+                </div>
+
+            </AdminLayout>
+        );
+    }
+
 
     return (
 
@@ -39,38 +89,85 @@ function AdminVendorManagement() {
 
             <div className="admin-vendors-page">
 
+
+                {/* =====================================
+                    HEADER
+                ===================================== */}
+
                 <div className="admin-vendors-header">
 
                     <div>
 
-                        <h1>Vendor Management</h1>
+                        <span className="admin-vendors-label">
+                            ADMINISTRATION
+                        </span>
+
+                        <h1>
+                            Vendor Management
+                        </h1>
 
                         <p>
-                            View vendor details and monitor vendor status
+                            View vendor details and monitor
+                            vendor status.
                         </p>
 
                     </div>
 
+
                     <div className="admin-vendor-count">
-                        {vendors.length} Vendors
+
+                        <strong>
+                            {vendors.length}
+                        </strong>
+
+                        <span>
+                            Vendors
+                        </span>
+
                     </div>
 
                 </div>
 
 
+                {/* =====================================
+                    VENDOR TABLE
+                ===================================== */}
+
                 <div className="admin-vendors-card">
+
+
+                    {/* TABLE HEADER */}
 
                     <div className="admin-vendors-table-header">
 
-                        <span>Vendor</span>
-                        <span>Email</span>
-                        <span>Phone</span>
-                        <span>Location</span>
-                        <span>Status</span>
-                        <span>Action</span>
+                        <span>
+                            Vendor
+                        </span>
+
+                        <span>
+                            Email
+                        </span>
+
+                        <span>
+                            Phone
+                        </span>
+
+                        <span>
+                            Location
+                        </span>
+
+                        <span>
+                            Status
+                        </span>
+
+                        <span>
+                            Action
+                        </span>
 
                     </div>
 
+
+                    {/* VENDOR ROWS */}
 
                     {vendors.map((vendor) => (
 
@@ -79,10 +176,13 @@ function AdminVendorManagement() {
                             key={vendor.id}
                         >
 
+
+                            {/* VENDOR */}
+
                             <div className="admin-vendor-details">
 
                                 <strong>
-                                    {vendor.name}
+                                    {vendor.name || "Unnamed Vendor"}
                                 </strong>
 
                                 <small>
@@ -92,34 +192,63 @@ function AdminVendorManagement() {
                             </div>
 
 
-                            <span>
-                                {vendor.email}
+                            {/* EMAIL */}
+
+                            <span className="vendor-email">
+
+                                {vendor.email || "Not provided"}
+
                             </span>
 
 
+                            {/* PHONE */}
+
                             <span>
-                                {vendor.phoneNumber || "Not provided"}
+
+                                {vendor.phoneNumber ||
+                                    "Not provided"}
+
                             </span>
 
 
+                            {/* LOCATION */}
+
                             <span>
+
                                 {vendor.city
-                                    ? `${vendor.city}${vendor.state
-                                        ? ", " + vendor.state
-                                        : ""}`
+                                    ? `${vendor.city}${
+                                        vendor.state
+                                            ? ", " + vendor.state
+                                            : ""
+                                    }`
                                     : "Not provided"}
+
                             </span>
 
 
-                            <span className="vendor-status active">
-                                ACTIVE
+                            {/* STATUS */}
+
+                            <span
+                                className={getStatusClass(
+                                    vendor.vendorStatus
+                                )}
+                            >
+
+                                {getStatusLabel(
+                                    vendor.vendorStatus
+                                )}
+
                             </span>
 
+
+                            {/* ACTION */}
 
                             <button
                                 className="view-vendor-button"
                                 onClick={() =>
-                                    navigate(`/admin/vendors/${vendor.id}`)
+                                    navigate(
+                                        `/admin/vendors/${vendor.id}`
+                                    )
                                 }
                             >
                                 View Details
@@ -130,10 +259,21 @@ function AdminVendorManagement() {
                     ))}
 
 
+                    {/* EMPTY STATE */}
+
                     {vendors.length === 0 && (
 
                         <div className="admin-vendors-empty">
-                            No vendors found.
+
+                            <strong>
+                                No vendors found
+                            </strong>
+
+                            <p>
+                                Vendor accounts will appear here
+                                after registration.
+                            </p>
+
                         </div>
 
                     )}
@@ -147,3 +287,4 @@ function AdminVendorManagement() {
 }
 
 export default AdminVendorManagement;
+

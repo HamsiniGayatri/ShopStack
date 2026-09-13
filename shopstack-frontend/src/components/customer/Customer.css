@@ -615,24 +615,91 @@
 }
 
 
-/* Price */
+/* =========================================
+   PRODUCT PRICE / DISCOUNT
+   ========================================= */
 
-.customer-product-card p:nth-of-type(3) {
-    margin-top: 13px;
-
-    color: #198754;
-
-    font-size: 19px;
-
-    font-weight: 700;
+.customer-product-price {
+    margin: 14px 17px 8px;
 }
 
 
+/* DISCOUNTED PRODUCT PRICE GROUP */
+
+.price-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+
+    margin-left: 12px;
+}
+
+
+/* ORIGINAL PRICE */
+
+.original-price {
+    display: block;
+
+    color: #8b95a5;
+    font-size: 13px;
+    font-weight: 500;
+
+    text-decoration: line-through;
+
+    margin-left: 4px;
+
+    line-height: 1.2;
+}
+
+
+/* DISCOUNTED PRICE */
+
+.discounted-price {
+    display: block;
+
+    color: #198754;
+
+    font-size: 21px;
+    font-weight: 750;
+
+    line-height: 1.3;
+}
+
+
+/* ONLY undiscounted price */
+
+.customer-product-price > .discounted-price {
+    margin-left: 12px;
+}
+
+
+/* DISCOUNT BADGE */
+
+.discount-badge {
+    display: inline-flex;
+    align-items: center;
+
+    margin-top: 2px;
+
+    padding: 4px 8px;
+
+    border-radius: 5px;
+
+    background: #e8f7ee;
+
+    color: #198754;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    line-height: 1;
+}
 /* =========================================
    PRODUCT ACTIONS
    ========================================= */
 
-.customer-product-card > div {
+.customer-product-card > div:last-child {
     display: flex;
 
     gap: 8px;
@@ -667,7 +734,6 @@
 .customer-product-card button:hover {
     background: #1d4ed8;
 }
-
 
 /* =========================================
    EMPTY STATE
@@ -2430,3 +2496,4 @@
         width: 100%;
     }
 }
+

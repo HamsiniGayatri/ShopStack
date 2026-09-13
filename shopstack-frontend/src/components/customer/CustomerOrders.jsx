@@ -18,74 +18,272 @@ function CustomerOrders() {
 
 
     // =========================================================
-    // FETCH ORDERS
+    // SHIPMENT TRACKING STEPS
+    // =========================================================
+
+    const shipmentSteps = [
+        "CREATED",
+        "SHIPPED",
+        "IN_TRANSIT",
+        "OUT_FOR_DELIVERY",
+        "DELIVERED"
+    ];
+
+
+    // =========================================================
+    // FETCH ORDERS + SHIPMENT INFORMATION
+    // =========================================================
+
+    const fetchOrders = async () => {
+
+        try {
+
+            const customerId =
+                localStorage.getItem("userId");
+
+            console.log(
+                "Logged-in customerId:",
+                customerId
+            );
+
+            if (!customerId) {
+
+                navigate("/login");
+
+                return;
+            }
+
+
+            // -----------------------------------------------------
+            // GET CUSTOMER ORDERS
+            // -----------------------------------------------------
+
+            const response = await api.get(
+                `/orders/customer/${customerId}`
+            );
+
+            console.log(
+                "Orders Response:",
+                response.data
+            );
+
+
+            let orderData = [];
+
+
+            if (Array.isArray(response.data)) {
+
+                orderData = response.data;
+
+            } else if (
+                Array.isArray(response.data.orders)
+            ) {
+
+                orderData = response.data.orders;
+
+            } else if (
+                Array.isArray(response.data.content)
+            ) {
+
+                orderData = response.data.content;
+
+            }
+
+
+            // -----------------------------------------------------
+            // GET SHIPMENT FOR EVERY ORDER
+            // -----------------------------------------------------
+
+            const ordersWithShipment =
+                await Promise.all(
+
+                    orderData.map(
+                        async order => {
+
+                            try {
+
+                                const shipmentResponse =
+                                    await api.get(
+                                        `/shipping/order/${order.id}`
+                                    );
+
+                                console.log(
+                                    `Shipment for Order ${order.id}:`,
+                                    shipmentResponse.data
+                                );
+
+
+                                return {
+
+                                    ...order,
+
+                                    shipment:
+                                        shipmentResponse.data
+
+                                };
+
+                            } catch (shipmentError) {
+
+                                console.log(
+                                    `No shipment available for Order ${order.id}`
+                                );
+
+
+                                return {
+
+                                    ...order,
+
+                                    shipment: null
+
+                                };
+
+                            }
+
+                        }
+                    )
+
+                );
+
+
+            setOrders(
+                ordersWithShipment
+            );
+
+
+        } catch (error) {
+
+            console.error(
+                "Error fetching orders:",
+                error
+            );
+
+            setOrders([]);
+
+        } finally {
+
+            setLoading(false);
+
+        }
+
+    };
+
+
+    // =========================================================
+    // INITIAL LOAD + AUTO REFRESH
     // =========================================================
 
     useEffect(() => {
 
         fetchOrders();
 
+
+        /*
+         * Refresh every 10 seconds.
+         *
+         * This allows the customer page to reflect
+         * warehouse shipment-status changes automatically.
+         */
+
+        const interval =
+            setInterval(() => {
+
+                fetchOrders();
+
+            }, 10000);
+
+
+        return () => {
+
+            clearInterval(interval);
+
+        };
+
     }, []);
 
 
-    const fetchOrders = async () => {
+    // =========================================================
+    // SHIPMENT STATUS
+    // =========================================================
 
-    try {
+    const getShipmentStatus = order => {
 
-        const customerId = localStorage.getItem("userId");
+        if (!order?.shipment?.status) {
 
-        if (!customerId) {
-
-            navigate("/login");
-            return;
+            return null;
 
         }
 
-        const response = await api.get(
-            `/orders/customer/${customerId}`
+        return String(
+            order.shipment.status
+        ).toUpperCase();
+
+    };
+
+
+    // =========================================================
+    // SHIPMENT STEP INDEX
+    // =========================================================
+
+    const getShipmentStepIndex = order => {
+
+        const status =
+            getShipmentStatus(order);
+
+
+        if (!status) {
+
+            return -1;
+
+        }
+
+
+        return shipmentSteps.indexOf(
+            status
         );
 
-        console.log("Orders Response:", response.data);
-        console.log("Is Array:", Array.isArray(response.data));
+    };
 
-        if (Array.isArray(response.data)) {
 
-            setOrders(response.data);
+    // =========================================================
+    // FORMAT SHIPMENT STATUS
+    // =========================================================
 
-        } else if (Array.isArray(response.data.orders)) {
+    const formatShipmentStatus = status => {
 
-            // If backend returns { orders:[...] }
-            setOrders(response.data.orders);
+        if (!status) {
 
-        } else if (Array.isArray(response.data.content)) {
-
-            // If backend returns Page<Order>
-            setOrders(response.data.content);
-
-        } else {
-
-            console.warn(
-                "Backend did not return an array:",
-                response.data
-            );
-
-            setOrders([]);
+            return "Shipment Pending";
 
         }
 
-    } catch (error) {
 
-        console.error("Error fetching orders:", error);
+        return String(status)
+            .replaceAll("_", " ")
+            .replace(/\b\w/g, char =>
+                char.toUpperCase()
+            );
 
-        setOrders([]);
+    };
 
-    } finally {
 
-        setLoading(false);
+    // =========================================================
+    // SHIPMENT STATUS CLASS
+    // =========================================================
 
-    }
+    const getShipmentStatusClass = status => {
 
-};
+        if (!status) {
+
+            return "shipment-status-badge pending";
+
+        }
+
+
+        return `shipment-status-badge ${
+            String(status).toLowerCase()
+        }`;
+
+    };
 
 
     // =========================================================
@@ -99,8 +297,9 @@ function CustomerOrders() {
             const searchText =
                 search.toLowerCase();
 
+
             const matchesSearch =
-                String(order.id)
+                String(order.id || "")
                     .toLowerCase()
                     .includes(searchText) ||
 
@@ -110,17 +309,38 @@ function CustomerOrders() {
 
                 String(order.status || "")
                     .toLowerCase()
+                    .includes(searchText) ||
+
+                String(
+                    order.shipment?.status || ""
+                )
+                    .toLowerCase()
+                    .includes(searchText) ||
+
+                String(
+                    order.shipment?.trackingNumber || ""
+                )
+                    .toLowerCase()
                     .includes(searchText);
+
 
             const matchesStatus =
                 statusFilter === "ALL" ||
                 order.status === statusFilter;
 
-            return matchesSearch && matchesStatus;
+
+            return (
+                matchesSearch &&
+                matchesStatus
+            );
 
         });
 
-    }, [orders, search, statusFilter]);
+    }, [
+        orders,
+        search,
+        statusFilter
+    ]);
 
 
     // =========================================================
@@ -130,6 +350,7 @@ function CustomerOrders() {
     const totalOrders =
         orders.length;
 
+
     const activeOrders =
         orders.filter(order =>
             [
@@ -137,30 +358,34 @@ function CustomerOrders() {
                 "CONFIRMED",
                 "PROCESSING",
                 "SHIPPED"
-            ].includes(order.status)
+            ].includes(
+                order.status
+            )
         ).length;
+
 
     const deliveredOrders =
-        orders.filter(
-            order =>
-                order.status === "DELIVERED"
+        orders.filter(order =>
+            order.status === "DELIVERED"
         ).length;
 
+
     const cancelledOrders =
-        orders.filter(
-            order =>
-                order.status === "CANCELLED"
+        orders.filter(order =>
+            order.status === "CANCELLED"
         ).length;
 
 
     // =========================================================
-    // STATUS CLASS
+    // ORDER STATUS CLASS
     // =========================================================
 
     const getStatusClass = status => {
 
-        return String(status || "PENDING")
-            .toLowerCase();
+        return String(
+            status || "PENDING"
+        ).toLowerCase();
+
     };
 
 
@@ -171,17 +396,22 @@ function CustomerOrders() {
     const formatDate = date => {
 
         if (!date) {
+
             return "—";
+
         }
 
-        return new Date(date).toLocaleDateString(
-            "en-IN",
-            {
-                day: "2-digit",
-                month: "short",
-                year: "numeric"
-            }
-        );
+
+        return new Date(date)
+            .toLocaleDateString(
+                "en-IN",
+                {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric"
+                }
+            );
+
     };
 
 
@@ -192,16 +422,21 @@ function CustomerOrders() {
     const formatTime = date => {
 
         if (!date) {
+
             return "";
+
         }
 
-        return new Date(date).toLocaleTimeString(
-            "en-IN",
-            {
-                hour: "2-digit",
-                minute: "2-digit"
-            }
-        );
+
+        return new Date(date)
+            .toLocaleTimeString(
+                "en-IN",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                }
+            );
+
     };
 
 
@@ -214,18 +449,24 @@ function CustomerOrders() {
         const customerId =
             localStorage.getItem("userId");
 
+
         const confirmed =
             window.confirm(
                 "Are you sure you want to cancel this order?"
             );
 
+
         if (!confirmed) {
+
             return;
+
         }
+
 
         try {
 
             setActionLoading(orderId);
+
 
             await api.put(
                 `/orders/${orderId}/cancel`,
@@ -237,11 +478,14 @@ function CustomerOrders() {
                 }
             );
 
+
             await fetchOrders();
+
 
             alert(
                 "Order cancelled successfully."
             );
+
 
         } catch (error) {
 
@@ -250,15 +494,19 @@ function CustomerOrders() {
                 error
             );
 
+
             alert(
                 error.response?.data ||
                 "Unable to cancel order."
             );
 
+
         } finally {
 
             setActionLoading(null);
+
         }
+
     };
 
 
@@ -271,18 +519,24 @@ function CustomerOrders() {
         const customerId =
             localStorage.getItem("userId");
 
+
         const confirmed =
             window.confirm(
                 "Are you sure you want to return this order?"
             );
 
+
         if (!confirmed) {
+
             return;
+
         }
+
 
         try {
 
             setActionLoading(orderId);
+
 
             await api.put(
                 `/orders/${orderId}/return`,
@@ -294,11 +548,14 @@ function CustomerOrders() {
                 }
             );
 
+
             await fetchOrders();
+
 
             alert(
                 "Return request submitted successfully."
             );
+
 
         } catch (error) {
 
@@ -307,37 +564,38 @@ function CustomerOrders() {
                 error
             );
 
+
             alert(
                 error.response?.data ||
                 "Unable to return order."
             );
 
+
         } finally {
 
             setActionLoading(null);
+
         }
+
     };
 
 
     // =========================================================
-    // TRACKING
+    // TRACK SHIPMENT
     // =========================================================
 
-    const trackingSteps = [
-        "PLACED",
-        "CONFIRMED",
-        "PROCESSING",
-        "SHIPPED",
-        "DELIVERED"
-    ];
+    const trackShipment = orderId => {
+
+        console.log(
+            "TRACKING ORDER ID:",
+            orderId
+        );
 
 
-    const getTrackingIndex = status => {
+        navigate(
+            `/customer/orders/${orderId}/tracking`
+        );
 
-        const index =
-            trackingSteps.indexOf(status);
-
-        return index >= 0 ? index : 0;
     };
 
 
@@ -362,7 +620,8 @@ function CustomerOrders() {
                         </strong>
 
                         <span>
-                            Please wait while we retrieve your order history.
+                            Please wait while we retrieve
+                            your order history.
                         </span>
 
                     </div>
@@ -370,6 +629,7 @@ function CustomerOrders() {
                 </div>
             </>
         );
+
     }
 
 
@@ -403,18 +663,21 @@ function CustomerOrders() {
                             </h1>
 
                             <p>
-                                Track purchases, payments and delivery
-                                progress from one place.
+                                Track purchases, payments and
+                                delivery progress from one place.
                             </p>
 
                         </div>
+
 
                         <div className="orders-header-actions">
 
                             <button
                                 className="continue-shopping-button"
                                 onClick={() =>
-                                    navigate("/customer/home")
+                                    navigate(
+                                        "/customer/home"
+                                    )
                                 }
                             >
                                 Continue Shopping
@@ -430,6 +693,7 @@ function CustomerOrders() {
                     ================================================= */}
 
                     <section className="orders-metrics">
+
 
                         <div className="metric-card">
 
@@ -514,6 +778,7 @@ function CustomerOrders() {
 
                         </div>
 
+
                     </section>
 
 
@@ -523,6 +788,7 @@ function CustomerOrders() {
 
                     <section className="orders-toolbar">
 
+
                         <div className="orders-search">
 
                             <span className="search-icon">
@@ -531,10 +797,12 @@ function CustomerOrders() {
 
                             <input
                                 type="text"
-                                placeholder="Search by order ID, city or status..."
+                                placeholder="Search by order ID, city, status or tracking number..."
                                 value={search}
                                 onChange={e =>
-                                    setSearch(e.target.value)
+                                    setSearch(
+                                        e.target.value
+                                    )
                                 }
                             />
 
@@ -599,13 +867,13 @@ function CustomerOrders() {
 
                         <div className="results-count">
 
-                            Showing
-                            {" "}
+                            Showing{" "}
+
                             <strong>
                                 {filteredOrders.length}
                             </strong>
-                            {" "}
-                            orders
+
+                            {" "}orders
 
                         </div>
 
@@ -613,7 +881,7 @@ function CustomerOrders() {
 
 
                     {/* =================================================
-                        ORDERS
+                        EMPTY
                     ================================================= */}
 
                     {filteredOrders.length === 0 ? (
@@ -635,7 +903,9 @@ function CustomerOrders() {
                             <button
                                 className="primary-button"
                                 onClick={() =>
-                                    navigate("/customer/home")
+                                    navigate(
+                                        "/customer/home"
+                                    )
                                 }
                             >
                                 Start Shopping
@@ -647,15 +917,15 @@ function CustomerOrders() {
 
                         <section className="orders-list">
 
+
                             {filteredOrders.map(order => {
 
-                                const trackingIndex =
-                                    getTrackingIndex(
-                                        order.status
-                                    );
+                                const shipmentStatus =
+                                    getShipmentStatus(order);
 
-                                const progress =
-                                    (trackingIndex / 4) * 100;
+                                const shipmentStepIndex =
+                                    getShipmentStepIndex(order);
+
 
                                 return (
 
@@ -671,6 +941,7 @@ function CustomerOrders() {
 
                                         <div className="order-card-header">
 
+
                                             <div className="order-heading">
 
                                                 <div className="order-id-row">
@@ -680,16 +951,21 @@ function CustomerOrders() {
                                                     </span>
 
                                                     <span className="order-date">
+
                                                         {formatDate(
                                                             order.orderDate
                                                         )}
+
                                                         {" "}
+
                                                         {formatTime(
                                                             order.orderDate
                                                         )}
+
                                                     </span>
 
                                                 </div>
+
 
                                                 <p>
                                                     ShopStack Marketplace
@@ -700,15 +976,42 @@ function CustomerOrders() {
 
                                             <div className="order-status-area">
 
+
+                                                {/* ORDER STATUS */}
+
                                                 <span
                                                     className={
-                                                        `order-status ${getStatusClass(
-                                                            order.status
-                                                        )}`
+                                                        `order-status ${
+                                                            getStatusClass(
+                                                                order.status
+                                                            )
+                                                        }`
                                                     }
                                                 >
                                                     {order.status}
                                                 </span>
+
+
+                                                {/* SHIPMENT STATUS */}
+
+                                                {shipmentStatus && (
+
+                                                    <span
+                                                        className={
+                                                            getShipmentStatusClass(
+                                                                shipmentStatus
+                                                            )
+                                                        }
+                                                    >
+                                                        {formatShipmentStatus(
+                                                            shipmentStatus
+                                                        )}
+                                                    </span>
+
+                                                )}
+
+
+                                                {/* PAYMENT STATUS */}
 
                                                 <span className="payment-badge">
 
@@ -716,6 +1019,7 @@ function CustomerOrders() {
                                                         "PENDING"}
 
                                                 </span>
+
 
                                             </div>
 
@@ -738,7 +1042,7 @@ function CustomerOrders() {
                                                 <strong>
                                                     ₹
                                                     {Number(
-                                                        order.totalAmount
+                                                        order.totalAmount || 0
                                                     ).toLocaleString(
                                                         "en-IN"
                                                     )}
@@ -768,9 +1072,11 @@ function CustomerOrders() {
                                                 </span>
 
                                                 <strong>
-                                                    {order.city || "—"},
-                                                    {" "}
-                                                    {order.state || ""}
+                                                    {order.city || "—"}
+
+                                                    {order.state
+                                                        ? `, ${order.state}`
+                                                        : ""}
                                                 </strong>
 
                                             </div>
@@ -788,65 +1094,173 @@ function CustomerOrders() {
 
                                             </div>
 
+
+                                            {/* COURIER */}
+
+                                            <div>
+
+                                                <span>
+                                                    COURIER
+                                                </span>
+
+                                                <strong>
+                                                    {order.shipment?.courierName ||
+                                                        "Not assigned"}
+                                                </strong>
+
+                                            </div>
+
+
+                                            {/* TRACKING NUMBER */}
+
+                                            <div>
+
+                                                <span>
+                                                    TRACKING NUMBER
+                                                </span>
+
+                                                <strong>
+                                                    {order.shipment?.trackingNumber ||
+                                                        "Not available"}
+                                                </strong>
+
+                                            </div>
+
+
                                         </div>
 
 
                                         {/* =================================
-                                            TRACKING
+                                            SHIPMENT TRACKING
                                         ================================= */}
 
                                         {![
                                             "CANCELLED",
                                             "RETURNED",
                                             "REFUNDED"
-                                        ].includes(order.status) && (
+                                        ].includes(
+                                            order.status
+                                        ) && (
 
-                                            <div
-                                                className="tracking"
-                                                style={{
-                                                    "--tracking-progress":
-                                                        `${progress}%`
-                                                }}
-                                            >
+                                            <div className="tracking">
 
-                                                {trackingSteps.map(
-                                                    (step, index) => {
 
-                                                        const active =
-                                                            index <=
-                                                            trackingIndex;
+                                                <div className="tracking-header">
 
-                                                        return (
 
-                                                            <div
-                                                                className={
-                                                                    `tracking-step ${
-                                                                        active
-                                                                            ? "active"
-                                                                            : ""
-                                                                    }`
-                                                                }
-                                                                key={step}
-                                                            >
+                                                    <div>
 
-                                                                <div className="tracking-circle">
+                                                        <span className="tracking-label">
+                                                            SHIPMENT TRACKING
+                                                        </span>
 
-                                                                    {active
-                                                                        ? "✓"
-                                                                        : index + 1}
+                                                        <strong>
+                                                            {formatShipmentStatus(
+                                                                shipmentStatus
+                                                            )}
+                                                        </strong>
+
+                                                    </div>
+
+
+                                                    {order.shipment?.trackingNumber && (
+
+                                                        <span className="tracking-number-small">
+
+                                                            {
+                                                                order.shipment.trackingNumber
+                                                            }
+
+                                                        </span>
+
+                                                    )}
+
+                                                </div>
+
+
+                                                <div className="tracking-timeline">
+
+
+                                                    {shipmentSteps.map(
+                                                        (
+                                                            step,
+                                                            index
+                                                        ) => {
+
+                                                            const completed =
+                                                                shipmentStepIndex >=
+                                                                index;
+
+                                                            const active =
+                                                                shipmentStepIndex ===
+                                                                index;
+
+
+                                                            return (
+
+                                                                <div
+                                                                    className={
+                                                                        `tracking-step ${
+                                                                            completed
+                                                                                ? "active"
+                                                                                : ""
+                                                                        } ${
+                                                                            active
+                                                                                ? "current"
+                                                                                : ""
+                                                                        }`
+                                                                    }
+                                                                    key={step}
+                                                                >
+
+
+                                                                    <div className="tracking-circle">
+
+                                                                        {completed
+                                                                            ? "✓"
+                                                                            : index + 1}
+
+                                                                    </div>
+
+
+                                                                    <span>
+
+                                                                        {step
+                                                                            .replaceAll(
+                                                                                "_",
+                                                                                " "
+                                                                            )}
+
+                                                                    </span>
+
 
                                                                 </div>
 
-                                                                <span>
-                                                                    {step}
-                                                                </span>
+                                                            );
 
-                                                            </div>
+                                                        }
+                                                    )}
 
-                                                        );
+                                                </div>
 
-                                                    }
+
+                                                {/* SHIPMENT MESSAGE */}
+
+                                                {!shipmentStatus && (
+
+                                                    <div className="shipment-pending-message">
+
+                                                        <span>
+                                                            ●
+                                                        </span>
+
+                                                        Shipment will appear here
+                                                        once the warehouse creates it.
+
+                                                    </div>
+
                                                 )}
+
 
                                             </div>
 
@@ -859,6 +1273,7 @@ function CustomerOrders() {
 
                                         <div className="order-delivery-panel">
 
+
                                             <div className="delivery-block">
 
                                                 <span className="panel-label">
@@ -866,15 +1281,22 @@ function CustomerOrders() {
                                                 </span>
 
                                                 <strong>
-                                                    {order.address}
+                                                    {order.address ||
+                                                        "—"}
                                                 </strong>
 
                                                 <p>
-                                                    {order.city},
+
+                                                    {order.city || ""}
+
+                                                    {order.state
+                                                        ? `, ${order.state}`
+                                                        : ""}
+
                                                     {" "}
-                                                    {order.state}
-                                                    {" "}
-                                                    {order.pincode}
+
+                                                    {order.pincode || ""}
+
                                                 </p>
 
                                             </div>
@@ -908,16 +1330,43 @@ function CustomerOrders() {
                                             <div className="delivery-block">
 
                                                 <span className="panel-label">
+                                                    SHIPMENT STATUS
+                                                </span>
+
+                                                <strong>
+                                                    {formatShipmentStatus(
+                                                        shipmentStatus
+                                                    )}
+                                                </strong>
+
+                                                <p>
+
+                                                    {order.shipment?.courierName ||
+                                                        "Courier not assigned"}
+
+                                                </p>
+
+                                            </div>
+
+
+                                            <div className="delivery-divider"></div>
+
+
+                                            <div className="delivery-block">
+
+                                                <span className="panel-label">
                                                     ORDER TOTAL
                                                 </span>
 
                                                 <strong className="amount-value">
+
                                                     ₹
                                                     {Number(
-                                                        order.totalAmount
+                                                        order.totalAmount || 0
                                                     ).toLocaleString(
                                                         "en-IN"
                                                     )}
+
                                                 </strong>
 
                                                 <p>
@@ -925,6 +1374,7 @@ function CustomerOrders() {
                                                 </p>
 
                                             </div>
+
 
                                         </div>
 
@@ -934,6 +1384,9 @@ function CustomerOrders() {
                                         ================================= */}
 
                                         <div className="order-actions">
+
+
+                                            {/* VIEW DETAILS */}
 
                                             <button
                                                 className="secondary-button"
@@ -946,6 +1399,26 @@ function CustomerOrders() {
                                                 View Details
                                             </button>
 
+
+                                            {/* TRACK SHIPMENT */}
+
+                                            {order.shipment && (
+
+                                                <button
+                                                    className="track-shipment-button"
+                                                    onClick={() =>
+                                                        trackShipment(
+                                                            order.id
+                                                        )
+                                                    }
+                                                >
+                                                    Track Shipment
+                                                </button>
+
+                                            )}
+
+
+                                            {/* CANCEL */}
 
                                             {[
                                                 "PENDING",
@@ -967,14 +1440,18 @@ function CustomerOrders() {
                                                         )
                                                     }
                                                 >
+
                                                     {actionLoading ===
                                                     order.id
                                                         ? "Processing..."
                                                         : "Cancel Order"}
+
                                                 </button>
 
                                             )}
 
+
+                                            {/* RETURN */}
 
                                             {order.status ===
                                                 "DELIVERED" && (
@@ -991,15 +1468,19 @@ function CustomerOrders() {
                                                         )
                                                     }
                                                 >
+
                                                     {actionLoading ===
                                                     order.id
                                                         ? "Processing..."
                                                         : "Request Return"}
+
                                                 </button>
 
                                             )}
 
+
                                         </div>
+
 
                                     </article>
 

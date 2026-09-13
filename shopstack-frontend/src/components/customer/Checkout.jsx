@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CustomerNavbar from "./CustomerNavbar";
@@ -11,20 +12,67 @@ function Checkout() {
     const cartItems =
         JSON.parse(localStorage.getItem("cart")) || [];
 
+
+    // =====================================================
+    // PRODUCT DISCOUNT PRICE
+    // =====================================================
+
+    const getDiscountedPrice = (item) => {
+
+        const originalPrice = Number(item.price) || 0;
+
+        const discountPercentage =
+            Number(item.discountPercentage) || 0;
+
+        if (discountPercentage <= 0) {
+            return originalPrice;
+        }
+
+        const discountAmount =
+            originalPrice * discountPercentage / 100;
+
+        return Math.round(
+            (originalPrice - discountAmount) * 100
+        ) / 100;
+    };
+
+
+    // =====================================================
+    // CART CALCULATIONS
+    // =====================================================
+
     const subtotal = cartItems.reduce(
         (total, item) =>
             total +
-            Number(item.price) *
+            getDiscountedPrice(item) *
             Number(item.cartQuantity),
         0
     );
+
 
     const delivery =
         subtotal >= 1000 || subtotal === 0
             ? 0
             : 50;
 
-    const total = subtotal + delivery;
+
+    // =====================================================
+    // STATES
+    // =====================================================
+
+    const [discount, setDiscount] = useState(0);
+
+    const [couponCode, setCouponCode] =
+        useState("");
+
+    const [couponApplied, setCouponApplied] =
+        useState(false);
+
+    const [couponMessage, setCouponMessage] =
+        useState("");
+
+    const [couponLoading, setCouponLoading] =
+        useState(false);
 
     const [formData, setFormData] = useState({
         address: "",
@@ -34,7 +82,18 @@ function Checkout() {
         country: "India"
     });
 
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] =
+        useState(false);
+
+
+    // =====================================================
+    // FINAL TOTAL
+    // =====================================================
+
+    const total =
+        subtotal +
+        delivery -
+        discount;
 
 
     // =====================================================
@@ -51,7 +110,135 @@ function Checkout() {
 
 
     // =====================================================
-    // OPEN RAZORPAY
+    // APPLY COUPON
+    // =====================================================
+
+    const applyCoupon = async () => {
+
+        const code =
+            couponCode
+                .trim()
+                .toUpperCase();
+
+        if (!code) {
+
+            setCouponMessage(
+                "Please enter a coupon code."
+            );
+
+            return;
+        }
+
+        try {
+
+            setCouponLoading(true);
+
+            setCouponMessage("");
+
+
+            const response =
+                await api.get(
+                    "/coupons/validate",
+                    {
+                        params: {
+                            code: code,
+                            orderAmount: subtotal
+                        }
+                    }
+                );
+
+
+            const data =
+                response.data;
+
+
+            console.log(
+                "Coupon response:",
+                data
+            );
+
+
+            const discountAmount =
+                Number(
+                    data.discountAmount || 0
+                );
+
+
+            if (discountAmount > 0) {
+
+                setDiscount(
+                    discountAmount
+                );
+
+                setCouponApplied(true);
+
+                setCouponCode(
+                    data.couponCode || code
+                );
+
+                setCouponMessage(
+                    "Coupon applied successfully."
+                );
+
+            } else {
+
+                setDiscount(0);
+
+                setCouponApplied(false);
+
+                setCouponMessage(
+                    "Coupon is not applicable to this order."
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Coupon validation error:",
+                error
+            );
+
+            console.error(
+                "Backend response:",
+                error.response?.data
+            );
+
+            setDiscount(0);
+
+            setCouponApplied(false);
+
+            setCouponMessage(
+                typeof error.response?.data === "string"
+                    ? error.response.data
+                    : error.response?.data?.message ||
+                      "Invalid or expired coupon code."
+            );
+
+        } finally {
+
+            setCouponLoading(false);
+        }
+    };
+
+
+    // =====================================================
+    // REMOVE COUPON
+    // =====================================================
+
+    const removeCoupon = () => {
+
+        setCouponCode("");
+
+        setDiscount(0);
+
+        setCouponApplied(false);
+
+        setCouponMessage("");
+    };
+
+
+    // =====================================================
+    // OPEN RAZORPAY CHECKOUT
     // =====================================================
 
     const openRazorpayCheckout = (
@@ -82,49 +269,21 @@ function Checkout() {
 
 
             // =================================================
-            // RAZORPAY PAYMENT SUCCESS
+            // PAYMENT SUCCESS
             // =================================================
 
             handler: async function (response) {
 
                 console.log(
-                    "================================="
-                );
-
-                console.log(
-                    "RAZORPAY PAYMENT SUCCESS"
-                );
-
-                console.log(
-                    "Response:",
+                    "RAZORPAY PAYMENT SUCCESS",
                     response
                 );
 
-                console.log(
-                    "Payment ID:",
-                    response?.razorpay_payment_id
-                );
-
-                console.log(
-                    "Razorpay Order ID:",
-                    response?.razorpay_order_id
-                );
-
-                console.log(
-                    "Signature:",
-                    response?.razorpay_signature
-                );
-
-                console.log(
-                    "================================="
-                );
-
-
                 try {
 
-                    // =================================================
-                    // STEP 1: VERIFY PAYMENT
-                    // =================================================
+                    // =============================================
+                    // VERIFY PAYMENT
+                    // =============================================
 
                     const paymentResponse =
                         await api.post(
@@ -161,22 +320,9 @@ function Checkout() {
                     );
 
 
-                    // =================================================
-                    // STEP 2: UPDATE SHOPSTACK ORDER
-                    // =================================================
-                    //
-                    // This calls:
-                    //
-                    // POST /orders/{id}/payment-success
-                    //
-                    // and triggers:
-                    //
-                    // paymentStatus = COMPLETED
-                    // status = CONFIRMED
-                    // stock reduction
-                    // total calculation
-                    //
-                    // =================================================
+                    // =============================================
+                    // UPDATE SHOPSTACK ORDER
+                    // =============================================
 
                     const orderPaymentResponse =
                         await api.post(
@@ -194,67 +340,26 @@ function Checkout() {
 
 
                     console.log(
-                        "ShopStack order payment updated:",
+                        "Updated order:",
                         orderPaymentResponse.data
                     );
 
 
-                    // =================================================
-                    // IMPORTANT DEBUG
-                    // =================================================
-
-                    console.log(
-                        "================================="
-                    );
-
-                    console.log(
-                        "UPDATED SHOPSTACK ORDER"
-                    );
-
-                    console.log(
-                        "Order ID:",
-                        orderPaymentResponse.data?.id
-                    );
-
-                    console.log(
-                        "Order Status:",
-                        orderPaymentResponse.data?.status
-                    );
-
-                    console.log(
-                        "Payment Status:",
-                        orderPaymentResponse.data?.paymentStatus
-                    );
-
-                    console.log(
-                        "Total Amount:",
-                        orderPaymentResponse.data?.totalAmount
-                    );
-
-                    console.log(
-                        "================================="
-                    );
-
-
-                    // =================================================
+                    // =============================================
                     // CLEAR CART
-                    // =================================================
+                    // =============================================
 
                     localStorage.removeItem(
                         "cart"
                     );
 
 
-                    // =================================================
-                    // STOP LOADING
-                    // =================================================
-
                     setLoading(false);
 
 
-                    // =================================================
-                    // GO TO ORDER DETAILS
-                    // =================================================
+                    // =============================================
+                    // ORDER DETAILS
+                    // =============================================
 
                     navigate(
                         `/customer/orders/${shopstackOrderId}`
@@ -272,19 +377,14 @@ function Checkout() {
                         error.response?.data
                     );
 
-
                     setLoading(false);
 
-
                     alert(
-                        error.response?.data ||
-                        "Payment verification failed."
+                        typeof error.response?.data === "string"
+                            ? error.response.data
+                            : error.response?.data?.message ||
+                              "Payment verification failed."
                     );
-
-
-                    // =================================================
-                    // STILL GO TO ORDER DETAILS
-                    // =================================================
 
                     navigate(
                         `/customer/orders/${shopstackOrderId}`
@@ -294,7 +394,7 @@ function Checkout() {
 
 
             // =================================================
-            // PAYMENT MODAL DISMISSED
+            // MODAL DISMISSED
             // =================================================
 
             modal: {
@@ -307,7 +407,7 @@ function Checkout() {
 
 
             // =================================================
-            // RAZORPAY THEME
+            // PAYMENT FAILED
             // =================================================
 
             theme: {
@@ -323,10 +423,6 @@ function Checkout() {
             );
 
 
-        // =====================================================
-        // PAYMENT FAILED
-        // =====================================================
-
         razorpay.on(
             "payment.failed",
             async function (response) {
@@ -335,7 +431,6 @@ function Checkout() {
                     "RAZORPAY PAYMENT FAILED",
                     response
                 );
-
 
                 try {
 
@@ -351,15 +446,12 @@ function Checkout() {
                     );
                 }
 
-
                 setLoading(false);
-
 
                 alert(
                     response.error?.description ||
                     "Payment failed."
                 );
-
 
                 navigate(
                     `/customer/orders/${shopstackOrderId}`
@@ -413,7 +505,7 @@ function Checkout() {
 
 
             // =================================================
-            // STEP 1: CREATE SHOPSTACK ORDER
+            // CREATE SHOPSTACK ORDER
             // =================================================
 
             const orderData = {
@@ -421,8 +513,24 @@ function Checkout() {
                 customerId:
                     Number(customerId),
 
+
+                // IMPORTANT:
+                // subtotal already contains
+                // vendor product discounts.
                 totalAmount:
                     total,
+
+
+                // Coupon discount remains separate.
+                discountAmount:
+                    discount,
+
+
+                couponCode:
+                    couponApplied
+                        ? couponCode
+                        : null,
+
 
                 address:
                     formData.address,
@@ -448,6 +556,11 @@ function Checkout() {
                 paymentMethod:
                     "RAZORPAY",
 
+
+                // =================================================
+                // ORDER ITEMS
+                // =================================================
+
                 items:
                     cartItems.map((item) => ({
 
@@ -466,20 +579,8 @@ function Checkout() {
 
 
             console.log(
-                "================================="
-            );
-
-            console.log(
-                "CREATING SHOPSTACK ORDER"
-            );
-
-            console.log(
-                "Order Data:",
+                "Creating order:",
                 orderData
-            );
-
-            console.log(
-                "================================="
             );
 
 
@@ -494,19 +595,8 @@ function Checkout() {
                 orderResponse.data.id;
 
 
-            console.log(
-                "ShopStack Order ID:",
-                shopstackOrderId
-            );
-
-            console.log(
-                "Created Order:",
-                orderResponse.data
-            );
-
-
             // =================================================
-            // STEP 2: CREATE RAZORPAY ORDER
+            // CREATE RAZORPAY ORDER
             // =================================================
 
             const razorpayResponse =
@@ -527,13 +617,13 @@ function Checkout() {
 
 
             console.log(
-                "Razorpay Order:",
+                "Razorpay order:",
                 razorpayOrder
             );
 
 
             // =================================================
-            // STEP 3: LOAD RAZORPAY
+            // LOAD RAZORPAY
             // =================================================
 
             if (!window.Razorpay) {
@@ -542,7 +632,6 @@ function Checkout() {
                     document.createElement(
                         "script"
                     );
-
 
                 script.src =
                     "https://checkout.razorpay.com/v1/checkout.js";
@@ -593,16 +682,57 @@ function Checkout() {
                 error.response?.data
             );
 
-
             alert(
-                error.response?.data ||
-                "Unable to start payment."
+                typeof error.response?.data === "string"
+                    ? error.response.data
+                    : error.response?.data?.message ||
+                      "Unable to start payment."
             );
-
 
             setLoading(false);
         }
     };
+
+
+    // =====================================================
+    // EMPTY CART
+    // =====================================================
+
+    if (cartItems.length === 0) {
+
+        return (
+            <>
+                <CustomerNavbar />
+
+                <div className="checkout-empty">
+
+                    <div className="checkout-empty-icon">
+                        🛒
+                    </div>
+
+                    <h2>
+                        Your cart is empty
+                    </h2>
+
+                    <p>
+                        Add products to your cart before
+                        proceeding to checkout.
+                    </p>
+
+                    <button
+                        onClick={() =>
+                            navigate(
+                                "/customer/home"
+                            )
+                        }
+                    >
+                        Continue Shopping
+                    </button>
+
+                </div>
+            </>
+        );
+    }
 
 
     // =====================================================
@@ -613,35 +743,72 @@ function Checkout() {
         <>
             <CustomerNavbar />
 
-
-            <div className="checkout-page">
+            <main className="checkout-page">
 
                 <div className="checkout-container">
 
 
-                    {/* =================================================
+                    {/* =========================================
                         HEADER
-                    ================================================= */}
+                    ========================================== */}
 
-                    <div className="checkout-header">
+                    <header className="checkout-header">
 
-                        <h1>
-                            Checkout
-                        </h1>
+                        <div>
 
-                        <p>
-                            Complete your order securely
-                        </p>
+                            <span className="checkout-eyebrow">
+                                SHOPSTACK / CHECKOUT
+                            </span>
 
-                    </div>
+                            <h1>
+                                Complete Your Order
+                            </h1>
 
+                            <p>
+                                Review your details and complete
+                                your payment securely.
+                            </p>
+
+                        </div>
+
+
+                        <div className="checkout-step">
+
+                            <span className="step-active">
+                                1
+                            </span>
+
+                            <div></div>
+
+                            <span>
+                                2
+                            </span>
+
+                            <div></div>
+
+                            <span>
+                                3
+                            </span>
+
+                            <small>
+                                Address&nbsp;&nbsp; Payment&nbsp;&nbsp; Complete
+                            </small>
+
+                        </div>
+
+                    </header>
+
+
+                    {/* =========================================
+                        CONTENT
+                    ========================================== */}
 
                     <div className="checkout-content">
 
 
-                        {/* =================================================
-                            ADDRESS + PAYMENT FORM
-                        ================================================= */}
+                        {/* =====================================
+                            LEFT SIDE
+                        ====================================== */}
 
                         <form
                             className="checkout-form"
@@ -651,50 +818,45 @@ function Checkout() {
                         >
 
 
-                            {/* =================================================
+                            {/* =================================
                                 DELIVERY ADDRESS
-                            ================================================= */}
+                            ================================== */}
 
-                            <div className="checkout-card">
+                            <section className="checkout-card">
 
-                                <h2>
-                                    Delivery Address
-                                </h2>
+                                <div className="checkout-card-heading">
+
+                                    <div className="checkout-card-number">
+                                        01
+                                    </div>
+
+                                    <div>
+
+                                        <h2>
+                                            Delivery Address
+                                        </h2>
+
+                                        <p>
+                                            Where should we deliver
+                                            your order?
+                                        </p>
+
+                                    </div>
+
+                                </div>
 
 
-                                <textarea
-                                    name="address"
-                                    placeholder="Complete Address"
-                                    value={
-                                        formData.address
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    required
-                                />
+                                <div className="checkout-field">
 
+                                    <label>
+                                        Complete Address
+                                    </label>
 
-                                <div className="checkout-input-row">
-
-                                    <input
-                                        name="city"
-                                        placeholder="City"
+                                    <textarea
+                                        name="address"
+                                        placeholder="House number, street, area..."
                                         value={
-                                            formData.city
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        required
-                                    />
-
-
-                                    <input
-                                        name="state"
-                                        placeholder="State"
-                                        value={
-                                            formData.state
+                                            formData.address
                                         }
                                         onChange={
                                             handleChange
@@ -707,77 +869,170 @@ function Checkout() {
 
                                 <div className="checkout-input-row">
 
-                                    <input
-                                        name="pincode"
-                                        placeholder="Pincode"
-                                        value={
-                                            formData.pincode
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        required
-                                    />
+                                    <div className="checkout-field">
+
+                                        <label>
+                                            City
+                                        </label>
+
+                                        <input
+                                            name="city"
+                                            placeholder="Kakinada"
+                                            value={
+                                                formData.city
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            required
+                                        />
+
+                                    </div>
 
 
-                                    <input
-                                        name="country"
-                                        placeholder="Country"
-                                        value={
-                                            formData.country
-                                        }
-                                        onChange={
-                                            handleChange
-                                        }
-                                        required
-                                    />
+                                    <div className="checkout-field">
+
+                                        <label>
+                                            State
+                                        </label>
+
+                                        <input
+                                            name="state"
+                                            placeholder="Andhra Pradesh"
+                                            value={
+                                                formData.state
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            required
+                                        />
+
+                                    </div>
 
                                 </div>
 
-                            </div>
+
+                                <div className="checkout-input-row">
+
+                                    <div className="checkout-field">
+
+                                        <label>
+                                            Pincode
+                                        </label>
+
+                                        <input
+                                            name="pincode"
+                                            placeholder="533016"
+                                            value={
+                                                formData.pincode
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            required
+                                        />
+
+                                    </div>
 
 
-                            {/* =================================================
-                                PAYMENT
-                            ================================================= */}
+                                    <div className="checkout-field">
 
-                            <div className="checkout-card">
+                                        <label>
+                                            Country
+                                        </label>
 
-                                <h2>
-                                    Payment Method
-                                </h2>
+                                        <input
+                                            name="country"
+                                            placeholder="India"
+                                            value={
+                                                formData.country
+                                            }
+                                            onChange={
+                                                handleChange
+                                            }
+                                            required
+                                        />
+
+                                    </div>
+
+                                </div>
+
+                            </section>
+
+
+                            {/* =================================
+                                PAYMENT METHOD
+                            ================================== */}
+
+                            <section className="checkout-card">
+
+                                <div className="checkout-card-heading">
+
+                                    <div className="checkout-card-number">
+                                        02
+                                    </div>
+
+                                    <div>
+
+                                        <h2>
+                                            Payment Method
+                                        </h2>
+
+                                        <p>
+                                            Choose your secure payment
+                                            method.
+                                        </p>
+
+                                    </div>
+
+                                </div>
 
 
                                 <label className="payment-option">
 
-                                    <input
-                                        type="radio"
-                                        checked={true}
-                                        readOnly
-                                    />
+                                    <div className="payment-radio">
+
+                                        <input
+                                            type="radio"
+                                            checked={true}
+                                            readOnly
+                                        />
+
+                                    </div>
 
 
-                                    <div>
+                                    <div className="payment-logo">
+                                        R
+                                    </div>
+
+
+                                    <div className="payment-details">
 
                                         <strong>
                                             Razorpay
                                         </strong>
 
-                                        <p>
-                                            Secure payment using
-                                            Razorpay Test Mode
-                                        </p>
+                                        <span>
+                                            Secure payment via
+                                            Razorpay
+                                        </span>
 
+                                    </div>
+
+
+                                    <div className="payment-secure">
+                                        SECURE
                                     </div>
 
                                 </label>
 
-                            </div>
+                            </section>
 
 
-                            {/* =================================================
-                                BUTTON
-                            ================================================= */}
+                            {/* =================================
+                                PAY BUTTON
+                            ================================== */}
 
                             <button
                                 type="submit"
@@ -785,84 +1040,348 @@ function Checkout() {
                                 disabled={loading}
                             >
 
-                                {loading
-                                    ? "Opening Payment..."
-                                    : `Pay ₹${total}`
-                                }
+                                <span>
+
+                                    {loading
+                                        ? "Opening Payment..."
+                                        : "Proceed to Secure Payment"
+                                    }
+
+                                </span>
+
+                                {!loading && (
+                                    <strong>
+                                        ₹
+                                        {total.toLocaleString(
+                                            "en-IN"
+                                        )}
+                                    </strong>
+                                )}
 
                             </button>
+
+
+                            <div className="checkout-security">
+
+                                <span>
+                                    🔒
+                                </span>
+
+                                <p>
+                                    Your payment is protected with
+                                    secure encryption.
+                                </p>
+
+                            </div>
 
                         </form>
 
 
-                        {/* =================================================
-                            ORDER SUMMARY
-                        ================================================= */}
+                        {/* =====================================
+                            RIGHT SIDE
+                        ====================================== */}
 
-                        <div className="checkout-summary">
+                        <aside className="checkout-summary">
 
-                            <h2>
-                                Order Summary
-                            </h2>
 
+                            {/* =================================
+                                ORDER SUMMARY HEADER
+                            ================================== */}
+
+                            <div className="summary-header">
+
+                                <div>
+
+                                    <span>
+                                        YOUR ORDER
+                                    </span>
+
+                                    <h2>
+                                        Order Summary
+                                    </h2>
+
+                                </div>
+
+                                <div className="item-count">
+
+                                    {cartItems.length}
+
+                                    {" "}
+
+                                    {cartItems.length === 1
+                                        ? "item"
+                                        : "items"}
+
+                                </div>
+
+                            </div>
+
+
+                            {/* =================================
+                                ITEMS
+                            ================================== */}
 
                             <div className="checkout-items">
 
                                 {cartItems.map(
-                                    (item) => (
+                                    (item) => {
 
-                                        <div
-                                            className="checkout-item"
-                                            key={item.id}
-                                        >
+                                        const originalPrice =
+                                            Number(item.price) || 0;
 
-                                            <img
-                                                src={
-                                                    item.imageUrl
-                                                }
-                                                alt={
-                                                    item.productName
-                                                }
-                                            />
+                                        const discountedPrice =
+                                            getDiscountedPrice(item);
+
+                                        const hasDiscount =
+                                            Number(
+                                                item.discountPercentage
+                                            ) > 0 &&
+                                            discountedPrice <
+                                            originalPrice;
+
+                                        const itemTotal =
+                                            discountedPrice *
+                                            Number(
+                                                item.cartQuantity
+                                            );
 
 
-                                            <div>
+                                        return (
 
-                                                <strong>
-                                                    {
-                                                        item.productName
-                                                    }
-                                                </strong>
+                                            <div
+                                                className="checkout-item"
+                                                key={item.id}
+                                            >
 
-                                                <p>
-                                                    Qty:
-                                                    {" "}
-                                                    {
-                                                        item.cartQuantity
-                                                    }
-                                                </p>
+                                                <div className="checkout-item-image">
+
+                                                    <img
+                                                        src={
+                                                            item.imageUrl
+                                                        }
+                                                        alt={
+                                                            item.productName
+                                                        }
+                                                    />
+
+                                                    <span>
+                                                        {
+                                                            item.cartQuantity
+                                                        }
+                                                    </span>
+
+                                                </div>
+
+
+                                                <div className="checkout-item-info">
+
+                                                    <strong>
+                                                        {
+                                                            item.productName
+                                                        }
+                                                    </strong>
+
+                                                    <span>
+                                                        {
+                                                            item.brand
+                                                        }
+                                                    </span>
+
+                                                    <small>
+                                                        Qty:{" "}
+                                                        {
+                                                            item.cartQuantity
+                                                        }
+                                                    </small>
+
+                                                </div>
+
+
+                                                <div className="checkout-item-price">
+
+                                                    {hasDiscount && (
+
+                                                        <span
+                                                            style={{
+                                                                textDecoration:
+                                                                    "line-through",
+                                                                opacity: 0.6,
+                                                                marginRight: "6px"
+                                                            }}
+                                                        >
+                                                            ₹
+                                                            {
+                                                                originalPrice.toLocaleString(
+                                                                    "en-IN"
+                                                                )
+                                                            }
+                                                        </span>
+
+                                                    )}
+
+                                                    <strong>
+                                                        ₹
+                                                        {
+                                                            itemTotal.toLocaleString(
+                                                                "en-IN"
+                                                            )
+                                                        }
+                                                    </strong>
+
+                                                    {hasDiscount && (
+
+                                                        <small
+                                                            style={{
+                                                                display: "block"
+                                                            }}
+                                                        >
+                                                            {
+                                                                item.discountPercentage
+                                                            }%
+                                                            OFF
+                                                        </small>
+
+                                                    )}
+
+                                                </div>
 
                                             </div>
-
-
-                                            <strong>
-                                                ₹
-                                                {
-                                                    Number(
-                                                        item.price
-                                                    ) *
-                                                    Number(
-                                                        item.cartQuantity
-                                                    )
-                                                }
-                                            </strong>
-
-                                        </div>
-                                    )
+                                        );
+                                    }
                                 )}
 
                             </div>
 
+
+                            {/* =================================
+                                COUPON
+                            ================================== */}
+
+                            <div className="coupon-section">
+
+                                <div className="coupon-heading">
+
+                                    <span className="coupon-icon">
+                                        %
+                                    </span>
+
+                                    <div>
+
+                                        <strong>
+                                            Have a coupon?
+                                        </strong>
+
+                                        <span>
+                                            Save more on your order
+                                        </span>
+
+                                    </div>
+
+                                </div>
+
+
+                                {!couponApplied ? (
+
+                                    <div className="coupon-input-row">
+
+                                        <input
+                                            type="text"
+                                            placeholder="Enter coupon code"
+                                            value={
+                                                couponCode
+                                            }
+                                            onChange={(e) =>
+                                                setCouponCode(
+                                                    e.target.value
+                                                        .toUpperCase()
+                                                )
+                                            }
+                                            onKeyDown={(e) => {
+
+                                                if (
+                                                    e.key === "Enter"
+                                                ) {
+
+                                                    e.preventDefault();
+
+                                                    applyCoupon();
+                                                }
+
+                                            }}
+                                        />
+
+                                        <button
+                                            type="button"
+                                            onClick={
+                                                applyCoupon
+                                            }
+                                            disabled={
+                                                couponLoading
+                                            }
+                                        >
+
+                                            {couponLoading
+                                                ? "..."
+                                                : "Apply"}
+
+                                        </button>
+
+                                    </div>
+
+                                ) : (
+
+                                    <div className="coupon-applied">
+
+                                        <div>
+
+                                            <span className="coupon-check">
+                                                ✓
+                                            </span>
+
+                                            <div>
+
+                                                <strong>
+                                                    {couponCode}
+                                                </strong>
+
+                                                <span>
+                                                    {couponMessage}
+                                                </span>
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <button
+                                            type="button"
+                                            onClick={
+                                                removeCoupon
+                                            }
+                                        >
+                                            Remove
+                                        </button>
+
+                                    </div>
+
+                                )}
+
+
+                                {!couponApplied &&
+                                    couponMessage && (
+
+                                        <p className="coupon-error">
+                                            {couponMessage}
+                                        </p>
+
+                                    )}
+
+                            </div>
+
+
+                            {/* =================================
+                                PRICE BREAKDOWN
+                            ================================== */}
 
                             <div className="checkout-divider" />
 
@@ -874,7 +1393,10 @@ function Checkout() {
                                 </span>
 
                                 <strong>
-                                    ₹{subtotal}
+                                    ₹
+                                    {subtotal.toLocaleString(
+                                        "en-IN"
+                                    )}
                                 </strong>
 
                             </div>
@@ -886,12 +1408,42 @@ function Checkout() {
                                     Delivery
                                 </span>
 
-                                <strong>
+                                <strong
+                                    className={
+                                        delivery === 0
+                                            ? "free-text"
+                                            : ""
+                                    }
+                                >
 
                                     {delivery === 0
                                         ? "FREE"
-                                        : `₹${delivery}`
+                                        : `₹${delivery}`}
+
+                                </strong>
+
+                            </div>
+
+
+                            <div className="checkout-summary-row">
+
+                                <span>
+                                    Discount
+                                </span>
+
+                                <strong
+                                    className={
+                                        discount > 0
+                                            ? "discount-text"
+                                            : ""
                                     }
+                                >
+
+                                    {discount > 0
+                                        ? `-₹${discount.toLocaleString(
+                                            "en-IN"
+                                        )}`
+                                        : "₹0"}
 
                                 </strong>
 
@@ -901,27 +1453,72 @@ function Checkout() {
                             <div className="checkout-divider" />
 
 
+                            {/* =================================
+                                TOTAL
+                            ================================== */}
+
                             <div className="checkout-total">
 
-                                <span>
-                                    Total
-                                </span>
+                                <div>
+
+                                    <span>
+                                        Total
+                                    </span>
+
+                                    <small>
+                                        Inclusive of all charges
+                                    </small>
+
+                                </div>
 
                                 <strong>
-                                    ₹{total}
+                                    ₹
+                                    {total.toLocaleString(
+                                        "en-IN"
+                                    )}
                                 </strong>
 
                             </div>
 
-                        </div>
+
+                            {/* =================================
+                                FREE DELIVERY MESSAGE
+                            ================================== */}
+
+                            <div className="free-delivery-banner">
+
+                                <span>
+                                    ✓
+                                </span>
+
+                                <p>
+
+                                    {delivery === 0
+                                        ? "Free delivery applied to your order."
+                                        : "Add ₹" +
+                                          (
+                                              1000 -
+                                              subtotal
+                                          ).toLocaleString(
+                                              "en-IN"
+                                          ) +
+                                          " more for free delivery."
+                                    }
+
+                                </p>
+
+                            </div>
+
+                        </aside>
 
                     </div>
 
                 </div>
 
-            </div>
+            </main>
         </>
     );
 }
 
 export default Checkout;
+

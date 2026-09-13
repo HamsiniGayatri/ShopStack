@@ -89,12 +89,37 @@ function CustomerCart() {
 
 
     const subtotal = cartItems.reduce(
-        (total, item) =>
-            total +
-            Number(item.price) *
-            item.cartQuantity,
-        0
-    );
+    (total, item) =>
+        total +
+        Number(item.price) *
+        Number(item.cartQuantity),
+    0
+);
+
+const productDiscount = cartItems.reduce(
+    (total, item) => {
+
+        const originalPrice =
+            Number(item.price);
+
+        const discountedPrice =
+            Number(
+                item.discountedPrice ??
+                originalPrice
+            );
+
+        const quantity =
+            Number(item.cartQuantity);
+
+        return total +
+            (originalPrice - discountedPrice) *
+            quantity;
+    },
+    0
+);
+
+const discountedSubtotal =
+    subtotal - productDiscount;
 
 
     const deliveryCharge =
@@ -107,7 +132,7 @@ function CustomerCart() {
 
 
     const total =
-        subtotal +
+        discountedSubtotal +
         deliveryCharge -
         discount;
 
@@ -224,11 +249,30 @@ function CustomerCart() {
 
                                     <div className="cart-item-price">
 
-                                        <span>
-                                            ₹{item.price}
-                                        </span>
+                                    {Number(item.discountPercentage || 0) > 0 ? (
+                                        <>
+                                            <span className="original-price">
+                                                ₹{Number(item.price).toLocaleString("en-IN")}
+                                            </span>
 
-                                    </div>
+                                            <strong className="discounted-price">
+                                                ₹
+                                                {Number(
+                                                    item.discountedPrice
+                                                ).toLocaleString("en-IN")}
+                                            </strong>
+
+                                            <small className="discount-label">
+                                                {Number(item.discountPercentage)}% OFF
+                                            </small>
+                                        </>
+                                    ) : (
+                                        <strong>
+                                            ₹{Number(item.price).toLocaleString("en-IN")}
+                                        </strong>
+                                    )}
+
+                                </div>
 
 
                                     {/* QUANTITY */}
@@ -263,8 +307,13 @@ function CustomerCart() {
                                     <div className="cart-item-total">
 
                                         ₹
-                                        {Number(item.price) *
-                                            item.cartQuantity}
+                                        {(
+                                            Number(
+                                                item.discountedPrice ??
+                                                item.price
+                                            ) *
+                                            Number(item.cartQuantity)
+                                        ).toLocaleString("en-IN")}
 
                                     </div>
 
@@ -286,15 +335,41 @@ function CustomerCart() {
 
                             <div className="summary-row">
 
-                                <span>
-                                    Subtotal
-                                </span>
+                                    <span>
+                                        Subtotal
+                                    </span>
 
-                                <strong>
-                                    ₹{subtotal}
-                                </strong>
+                                    <strong>
+                                        ₹{subtotal.toLocaleString("en-IN")}
+                                    </strong>
 
-                            </div>
+                                </div>
+
+                                <div className="summary-row">
+
+                                    <span>
+                                        Product Discount
+                                    </span>
+
+                                    <strong className="discount-text">
+                                        {productDiscount > 0
+                                            ? `-₹${productDiscount.toLocaleString("en-IN")}`
+                                            : "₹0"}
+                                    </strong>
+
+                                </div>
+
+                                <div className="summary-row">
+
+                                    <span>
+                                        Discounted Subtotal
+                                    </span>
+
+                                    <strong>
+                                        ₹{discountedSubtotal.toLocaleString("en-IN")}
+                                    </strong>
+
+                                </div>
 
 
                             <div className="summary-row">

@@ -55,6 +55,17 @@ function AdminLayout({ children }) {
                         Business Reports
                     </button>
 
+                    <button onClick={() => navigate("/admin/warehouses")}>
+                        Warehouse Management
+                    </button>
+
+                    <button onClick={() => navigate("/admin/shipments")}>
+                        Shipping & Tracking
+                    </button>
+                    {/* <button onClick={() => navigate("/admin/commissions")}>
+                        Commission Management
+                    </button> */}
+
                 </nav>
 
                 <button

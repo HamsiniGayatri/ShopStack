@@ -43,6 +43,10 @@ public class Order {
 
     private LocalDateTime refundedAt;
 
+    private String couponCode;
+
+    private double discountAmount;
+
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,
@@ -186,5 +190,21 @@ public class Order {
         items.add(item);
 
         item.setOrder(this);
+    }
+
+    public String getCouponCode() {
+    return couponCode;
+    }
+
+    public void setCouponCode(String couponCode) {
+        this.couponCode = couponCode;
+    }
+
+    public double getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(double discountAmount) {
+        this.discountAmount = discountAmount;
     }
 }

@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import "./AddProduct.css";
 import VendorNavbar from "../../components/VendorNavbar";
@@ -11,6 +12,7 @@ function AddProduct() {
         brand: "",
         description: "",
         price: "",
+        discountPercentage: "0",
         stockQuantity: ""
     });
 
@@ -33,7 +35,6 @@ function AddProduct() {
 
         formData.append("file", image);
 
-
         const response = await api.post(
             "/images/upload",
             formData,
@@ -44,9 +45,7 @@ function AddProduct() {
             }
         );
 
-
         return response.data;
-
     };
 
 
@@ -58,29 +57,51 @@ function AddProduct() {
 
             let uploadedImageUrl = "";
 
-
-            if(image){
-                uploadedImageUrl = await uploadImage();
+            if (image) {
+                uploadedImageUrl =
+                    await uploadImage();
             }
 
 
-            const vendorId = localStorage.getItem("userId");
+            const vendorId =
+                localStorage.getItem("userId");
+
+
+            const discount =
+                Number(
+                    product.discountPercentage || 0
+                );
+
+
+            if (discount < 0 || discount > 100) {
+
+                alert(
+                    "Discount must be between 0% and 100%"
+                );
+
+                return;
+            }
 
 
             const productData = {
 
                 ...product,
 
-                price:Number(product.price),
+                price:
+                    Number(product.price),
 
-                stockQuantity:Number(product.stockQuantity),
+                discountPercentage:
+                    discount,
 
-                imageUrl:uploadedImageUrl,
+                stockQuantity:
+                    Number(product.stockQuantity),
 
-                vendor:{
-                    id:Number(vendorId)
+                imageUrl:
+                    uploadedImageUrl,
+
+                vendor: {
+                    id: Number(vendorId)
                 }
-
             };
 
 
@@ -90,33 +111,52 @@ function AddProduct() {
             );
 
 
-            alert("Product Submitted Successfully");
+            alert(
+                "Product Submitted Successfully"
+            );
 
 
             setProduct({
-
                 productName: "",
                 category: "",
                 brand: "",
                 description: "",
                 price: "",
+                discountPercentage: "0",
                 stockQuantity: ""
-
             });
 
 
             setImage(null);
 
+        } catch (error) {
 
-        } catch(error) {
+            console.error(
+                "Add product error:",
+                error
+            );
 
-            console.log(error);
+            console.error(
+                "Backend response:",
+                error.response?.data
+            );
 
-            alert("Unable to submit product");
-
+            alert(
+                error.response?.data ||
+                "Unable to submit product"
+            );
         }
-
     };
+
+
+    const discountedPrice =
+        product.price
+            ? Number(product.price) *
+              (1 -
+                  Number(
+                      product.discountPercentage || 0
+                  ) / 100)
+            : 0;
 
 
     return (
@@ -125,15 +165,14 @@ function AddProduct() {
 
             <VendorNavbar />
 
-
             <div className="add-product-container">
 
-
-                <h1>Add New Product</h1>
+                <h1>
+                    Add New Product
+                </h1>
 
 
                 <form onSubmit={handleSubmit}>
-
 
                     <input
                         type="text"
@@ -141,6 +180,7 @@ function AddProduct() {
                         placeholder="Product Name"
                         value={product.productName}
                         onChange={handleChange}
+                        required
                     />
 
 
@@ -150,17 +190,15 @@ function AddProduct() {
                         placeholder="Brand"
                         value={product.brand}
                         onChange={handleChange}
+                        required
                     />
 
 
                     <select
-
                         name="category"
-
                         value={product.category}
-
                         onChange={handleChange}
-
+                        required
                     >
 
                         <option value="">
@@ -191,86 +229,97 @@ function AddProduct() {
                             Groceries
                         </option>
 
-
                     </select>
 
 
-
                     <textarea
-
                         name="description"
-
                         placeholder="Description"
-
                         value={product.description}
-
                         onChange={handleChange}
-
+                        required
                     />
 
 
-
                     <input
-
                         type="number"
-
                         name="price"
-
-                        placeholder="Price"
-
+                        placeholder="Original Price"
                         value={product.price}
-
                         onChange={handleChange}
-
+                        min="0"
+                        step="0.01"
+                        required
                     />
 
 
-
                     <input
-
                         type="number"
-
-                        name="stockQuantity"
-
-                        placeholder="Stock Quantity"
-
-                        value={product.stockQuantity}
-
+                        name="discountPercentage"
+                        placeholder="Discount (%)"
+                        value={product.discountPercentage}
                         onChange={handleChange}
-
+                        min="0"
+                        max="100"
+                        step="0.01"
                     />
-
 
 
                     <input
-
-                        type="file"
-
-                        accept="image/*"
-
-                        onChange={(e)=>setImage(e.target.files[0])}
-
+                        type="number"
+                        name="stockQuantity"
+                        placeholder="Stock Quantity"
+                        value={product.stockQuantity}
+                        onChange={handleChange}
+                        min="0"
+                        required
                     />
 
+
+                    <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                            setImage(
+                                e.target.files[0]
+                            )
+                        }
+                    />
+
+
+                    {product.price && (
+                        <div className="discount-preview">
+
+                            <span>
+                                Selling Price
+                            </span>
+
+                            <strong>
+                                ₹
+                                {discountedPrice.toLocaleString(
+                                    "en-IN",
+                                    {
+                                        maximumFractionDigits: 2
+                                    }
+                                )}
+                            </strong>
+
+                        </div>
+                    )}
 
 
                     <button type="submit">
-
                         Submit Product
-
                     </button>
 
-
                 </form>
-
 
             </div>
 
         </>
 
     );
-
 }
 
-
 export default AddProduct;
+

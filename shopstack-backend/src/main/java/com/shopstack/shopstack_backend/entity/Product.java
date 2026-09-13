@@ -1,19 +1,17 @@
+
 package com.shopstack.shopstack_backend.entity;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import com.shopstack.shopstack_backend.entity.ProductAvailability;
 
 import jakarta.persistence.*;
-
-
 
 @Entity
 @Table(name = "products")
 public class Product {
 
     @Enumerated(EnumType.STRING)
-private ProductAvailability availability;
+    private ProductAvailability availability;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,7 +26,13 @@ private ProductAvailability availability;
     @Column(length = 2000)
     private String description;
 
+    // Original price
+    @Column(nullable = false)
     private BigDecimal price;
+
+    // Vendor discount percentage
+    @Column(precision = 5, scale = 2)
+    private BigDecimal discountPercentage = BigDecimal.ZERO;
 
     private Integer stockQuantity;
 
@@ -67,6 +71,10 @@ private ProductAvailability availability;
         if (availability == null) {
             availability = ProductAvailability.ACTIVE;
         }
+
+        if (discountPercentage == null) {
+            discountPercentage = BigDecimal.ZERO;
+        }
     }
 
 
@@ -76,18 +84,42 @@ private ProductAvailability availability;
 
     @PreUpdate
     public void preUpdate() {
-
         updatedAt = LocalDateTime.now();
+
+        if (discountPercentage == null) {
+            discountPercentage = BigDecimal.ZERO;
+        }
     }
 
 
-    public ProductAvailability getAvailability() {
-        return availability;
+    // =========================================================
+    // Discounted Price
+    // =========================================================
+
+    @Transient
+    public BigDecimal getDiscountedPrice() {
+
+        if (price == null) {
+            return BigDecimal.ZERO;
+        }
+
+        if (discountPercentage == null ||
+                discountPercentage.compareTo(BigDecimal.ZERO) <= 0) {
+
+            return price;
+        }
+
+        BigDecimal discount =
+                price.multiply(discountPercentage)
+                        .divide(
+                                BigDecimal.valueOf(100),
+                                2,
+                                java.math.RoundingMode.HALF_UP
+                        );
+
+        return price.subtract(discount);
     }
 
-    public void setAvailability(ProductAvailability availability) {
-        this.availability = availability;
-    }
 
     // =========================================================
     // Getters
@@ -117,6 +149,10 @@ private ProductAvailability availability;
         return price;
     }
 
+    public BigDecimal getDiscountPercentage() {
+        return discountPercentage;
+    }
+
     public Integer getStockQuantity() {
         return stockQuantity;
     }
@@ -131,6 +167,10 @@ private ProductAvailability availability;
 
     public User getVendor() {
         return vendor;
+    }
+
+    public ProductAvailability getAvailability() {
+        return availability;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -170,6 +210,10 @@ private ProductAvailability availability;
         this.price = price;
     }
 
+    public void setDiscountPercentage(BigDecimal discountPercentage) {
+        this.discountPercentage = discountPercentage;
+    }
+
     public void setStockQuantity(Integer stockQuantity) {
         this.stockQuantity = stockQuantity;
     }
@@ -186,6 +230,10 @@ private ProductAvailability availability;
         this.vendor = vendor;
     }
 
+    public void setAvailability(ProductAvailability availability) {
+        this.availability = availability;
+    }
+
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
@@ -194,3 +242,4 @@ private ProductAvailability availability;
         this.updatedAt = updatedAt;
     }
 }
+

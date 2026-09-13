@@ -7,36 +7,144 @@ import "./AdminVendorDetails.css";
 function AdminVendorDetails() {
 
     const { id } = useParams();
-
     const navigate = useNavigate();
 
     const [vendor, setVendor] = useState(null);
+    const [products, setProducts] = useState([]);
+    const [loadingProducts, setLoadingProducts] = useState(true);
+    const [updatingProduct, setUpdatingProduct] = useState(null);
+
+    // =========================================================
+    // LOAD VENDOR + PRODUCTS
+    // =========================================================
 
     useEffect(() => {
 
-        const loadVendor = async () => {
+        const loadData = async () => {
 
             try {
 
-                const response = await api.get(
-                    `/admin/vendors/${id}`
+                const vendorResponse =
+                    await api.get(`/admin/vendors/${id}`);
+
+                console.log(
+                    "VENDOR DETAILS:",
+                    vendorResponse.data
                 );
 
-                console.log("VENDOR DETAILS:", response.data);
+                setVendor(vendorResponse.data);
 
-                setVendor(response.data);
+
+                const productsResponse =
+                    await api.get(`/admin/vendors/${id}/products`);
+
+                console.log(
+                    "VENDOR PRODUCTS:",
+                    productsResponse.data
+                );
+
+                setProducts(productsResponse.data);
 
             } catch (error) {
 
-                console.log("VENDOR DETAILS ERROR:", error);
+                console.error(
+                    "ADMIN VENDOR DETAILS ERROR:",
+                    error
+                );
+
+            } finally {
+
+                setLoadingProducts(false);
 
             }
         };
 
-        loadVendor();
+        loadData();
 
     }, [id]);
 
+
+    // =========================================================
+    // UPDATE PRODUCT STATUS
+    // =========================================================
+
+    const updateProductStatus = async (
+        productId,
+        status
+    ) => {
+
+        try {
+
+            setUpdatingProduct(productId);
+
+            const response =
+                await api.put(
+                    `/admin/products/${productId}/status`,
+                    null,
+                    {
+                        params: {
+                            status: status
+                        }
+                    }
+                );
+
+            console.log(
+                "PRODUCT STATUS UPDATED:",
+                response.data
+            );
+
+            setProducts((currentProducts) =>
+                currentProducts.map((product) =>
+                    product.id === productId
+                        ? {
+                            ...product,
+                            status: response.data.status
+                        }
+                        : product
+                )
+            );
+
+        } catch (error) {
+
+            console.error(
+                "PRODUCT STATUS UPDATE ERROR:",
+                error
+            );
+
+            alert(
+                error.response?.data?.message ||
+                "Unable to update product status"
+            );
+
+        } finally {
+
+            setUpdatingProduct(null);
+
+        }
+    };
+
+
+    // =========================================================
+    // STATUS CLASS
+    // =========================================================
+
+    const getStatusClass = (status) => {
+
+        if (status === "APPROVED") {
+            return "product-status approved";
+        }
+
+        if (status === "REJECTED") {
+            return "product-status rejected";
+        }
+
+        return "product-status pending";
+    };
+
+
+    // =========================================================
+    // LOADING
+    // =========================================================
 
     if (!vendor) {
 
@@ -52,20 +160,52 @@ function AdminVendorDetails() {
     }
 
 
+    // =========================================================
+    // COUNTS
+    // =========================================================
+
+    const pendingProducts =
+        products.filter(
+            product => product.status === "PENDING"
+        );
+
+    const approvedProducts =
+        products.filter(
+            product => product.status === "APPROVED"
+        );
+
+    const rejectedProducts =
+        products.filter(
+            product => product.status === "REJECTED"
+        );
+
+
     return (
 
         <AdminLayout>
 
             <div className="admin-vendor-details-page">
 
+
+                {/* =================================================
+                    HEADER
+                ================================================= */}
+
                 <div className="admin-vendor-details-header">
 
                     <div>
 
-                        <h1>Vendor Details</h1>
+                        <span className="admin-page-label">
+                            VENDOR MANAGEMENT
+                        </span>
+
+                        <h1>
+                            Vendor Details
+                        </h1>
 
                         <p>
-                            Monitor vendor marketplace activity
+                            Monitor vendor information,
+                            products and marketplace activity.
                         </p>
 
                     </div>
@@ -82,7 +222,9 @@ function AdminVendorDetails() {
                 </div>
 
 
-                {/* Vendor Overview */}
+                {/* =================================================
+                    VENDOR OVERVIEW
+                ================================================= */}
 
                 <div className="vendor-details-card">
 
@@ -91,11 +233,12 @@ function AdminVendorDetails() {
                         <div>
 
                             <h2>
-                                {vendor.name}
+                                {vendor.vendorName || vendor.name}
                             </h2>
 
                             <p>
-                                Vendor ID: #{vendor.id}
+                                Vendor ID: #
+                                {vendor.vendorId || vendor.id}
                             </p>
 
                         </div>
@@ -107,16 +250,16 @@ function AdminVendorDetails() {
                     </div>
 
 
-                    {/* Basic Vendor Information */}
-
                     <div className="vendor-information">
 
                         <div className="vendor-info-item">
 
-                            <label>Vendor ID</label>
+                            <label>
+                                Vendor ID
+                            </label>
 
                             <p>
-                                #{vendor.vendorId}
+                                #{vendor.vendorId || vendor.id}
                             </p>
 
                         </div>
@@ -124,10 +267,12 @@ function AdminVendorDetails() {
 
                         <div className="vendor-info-item">
 
-                            <label>Vendor Name</label>
+                            <label>
+                                Vendor Name
+                            </label>
 
                             <p>
-                                {vendor.vendorName}
+                                {vendor.vendorName || vendor.name}
                             </p>
 
                         </div>
@@ -135,7 +280,9 @@ function AdminVendorDetails() {
 
                         <div className="vendor-info-item">
 
-                            <label>Email</label>
+                            <label>
+                                Email
+                            </label>
 
                             <p>
                                 {vendor.email}
@@ -146,7 +293,9 @@ function AdminVendorDetails() {
 
                         <div className="vendor-info-item">
 
-                            <label>Account Role</label>
+                            <label>
+                                Account Role
+                            </label>
 
                             <p>
                                 {vendor.role}
@@ -159,16 +308,20 @@ function AdminVendorDetails() {
                 </div>
 
 
-                {/* Marketplace Statistics */}
+                {/* =================================================
+                    STATISTICS
+                ================================================= */}
 
                 <div className="vendor-statistics">
 
                     <div className="vendor-stat-card">
 
-                        <h3>Total Products</h3>
+                        <h3>
+                            Total Products
+                        </h3>
 
                         <p>
-                            {vendor.totalProducts}
+                            {products.length}
                         </p>
 
                     </div>
@@ -176,10 +329,12 @@ function AdminVendorDetails() {
 
                     <div className="vendor-stat-card">
 
-                        <h3>Active Products</h3>
+                        <h3>
+                            Pending Approval
+                        </h3>
 
-                        <p>
-                            {vendor.activeProducts}
+                        <p className="pending-number">
+                            {pendingProducts.length}
                         </p>
 
                     </div>
@@ -187,10 +342,12 @@ function AdminVendorDetails() {
 
                     <div className="vendor-stat-card">
 
-                        <h3>Total Orders</h3>
+                        <h3>
+                            Approved Products
+                        </h3>
 
-                        <p>
-                            {vendor.totalOrders}
+                        <p className="approved-number">
+                            {approvedProducts.length}
                         </p>
 
                     </div>
@@ -198,10 +355,12 @@ function AdminVendorDetails() {
 
                     <div className="vendor-stat-card">
 
-                        <h3>Total Sales</h3>
+                        <h3>
+                            Rejected Products
+                        </h3>
 
-                        <p>
-                            ₹{vendor.totalSales}
+                        <p className="rejected-number">
+                            {rejectedProducts.length}
                         </p>
 
                     </div>
@@ -209,18 +368,245 @@ function AdminVendorDetails() {
                 </div>
 
 
-                {/* Vendor Activity */}
+                {/* =================================================
+                    PRODUCTS
+                ================================================= */}
 
-                <div className="vendor-details-card">
+                <section className="vendor-products-section">
 
-                    <h2>Vendor Activity</h2>
+                    <div className="vendor-products-header">
 
-                    <p className="vendor-section-description">
-                        Marketplace activity and performance information
-                        for this vendor will be displayed here.
-                    </p>
+                        <div>
 
-                </div>
+                            <span className="admin-page-label">
+                                PRODUCT REVIEW
+                            </span>
+
+                            <h2>
+                                Vendor Products
+                            </h2>
+
+                            <p>
+                                Review vendor products and
+                                approve or reject pending listings.
+                            </p>
+
+                        </div>
+
+                        <div className="product-count-badge">
+                            {products.length} Products
+                        </div>
+
+                    </div>
+
+
+                    {/* =================================================
+                        PRODUCT LIST
+                    ================================================= */}
+
+                    {loadingProducts ? (
+
+                        <div className="products-loading">
+                            Loading products...
+                        </div>
+
+                    ) : products.length === 0 ? (
+
+                        <div className="products-empty">
+                            No products found for this vendor.
+                        </div>
+
+                    ) : (
+
+                        <div className="admin-products-grid">
+
+                            {products.map((product) => (
+
+                                <div
+                                    className="admin-product-card"
+                                    key={product.id}
+                                >
+
+                                    {/* IMAGE */}
+
+                                    <div className="admin-product-image">
+
+                                        {product.imageUrl ? (
+
+                                            <img
+                                                src={product.imageUrl}
+                                                alt={product.productName}
+                                            />
+
+                                        ) : (
+
+                                            <div className="no-product-image">
+                                                No Image
+                                            </div>
+
+                                        )}
+
+                                    </div>
+
+
+                                    {/* CONTENT */}
+
+                                    <div className="admin-product-content">
+
+                                        <div className="product-top-row">
+
+                                            <span className="product-category">
+                                                {product.category}
+                                            </span>
+
+                                            <span
+                                                className={getStatusClass(
+                                                    product.status
+                                                )}
+                                            >
+                                                {product.status}
+                                            </span>
+
+                                        </div>
+
+
+                                        <h3>
+                                            {product.productName}
+                                        </h3>
+
+
+                                        <p className="product-brand">
+                                            Brand: {product.brand || "Not provided"}
+                                        </p>
+
+
+                                        <p className="product-description">
+
+                                            {product.description
+                                                ? product.description
+                                                : "No description provided."}
+
+                                        </p>
+
+
+                                        {/* PRICE */}
+
+                                        <div className="admin-product-price">
+
+                                            <strong>
+                                                ₹
+                                                {Number(
+                                                    product.discountedPrice ??
+                                                    product.price ??
+                                                    0
+                                                ).toLocaleString("en-IN")}
+                                            </strong>
+
+                                            {product.discountPercentage > 0 && (
+
+                                                <span>
+                                                    {product.discountPercentage}% OFF
+                                                </span>
+
+                                            )}
+
+                                        </div>
+
+
+                                        {/* STOCK */}
+
+                                        <div className="product-stock">
+
+                                            <span>
+                                                Stock
+                                            </span>
+
+                                            <strong>
+                                                {product.stockQuantity ?? 0}
+                                            </strong>
+
+                                        </div>
+
+
+                                        {/* ACTIONS */}
+
+                                        {product.status === "PENDING" && (
+
+                                            <div className="product-actions">
+
+                                                <button
+                                                    className="approve-product-button"
+                                                    disabled={
+                                                        updatingProduct ===
+                                                        product.id
+                                                    }
+                                                    onClick={() =>
+                                                        updateProductStatus(
+                                                            product.id,
+                                                            "APPROVED"
+                                                        )
+                                                    }
+                                                >
+
+                                                    {updatingProduct === product.id
+                                                        ? "Updating..."
+                                                        : "Approve"}
+
+                                                </button>
+
+
+                                                <button
+                                                    className="reject-product-button"
+                                                    disabled={
+                                                        updatingProduct ===
+                                                        product.id
+                                                    }
+                                                    onClick={() =>
+                                                        updateProductStatus(
+                                                            product.id,
+                                                            "REJECTED"
+                                                        )
+                                                    }
+                                                >
+
+                                                    Reject
+
+                                                </button>
+
+                                            </div>
+
+                                        )}
+
+
+                                        {product.status === "APPROVED" && (
+
+                                            <div className="product-approved-message">
+                                                Product approved and available
+                                                for marketplace listing.
+                                            </div>
+
+                                        )}
+
+
+                                        {product.status === "REJECTED" && (
+
+                                            <div className="product-rejected-message">
+                                                Product rejected by administrator.
+                                            </div>
+
+                                        )}
+
+                                    </div>
+
+                                </div>
+
+                            ))}
+
+                        </div>
+
+                    )}
+
+                </section>
 
             </div>
 

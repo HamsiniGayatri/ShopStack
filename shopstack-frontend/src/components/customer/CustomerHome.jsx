@@ -150,6 +150,7 @@ function CustomerHome() {
             Number(product.stockQuantity) >= Number(filters.minStock);
 
         return (
+            product.status === "APPROVED" &&
             matchesSearch &&
             matchesMinPrice &&
             matchesMaxPrice &&
@@ -483,9 +484,34 @@ function CustomerHome() {
                                         Category: {product.category}
                                     </p>
 
-                                    <p>
-                                        ₹{product.price}
-                                    </p>
+                                    <div className="customer-product-price">
+
+    {Number(product.discountPercentage || 0) > 0 ? (
+        <div className="price-row">
+
+            {/* Original Price */}
+            <span className="original-price">
+                ₹{Number(product.price).toLocaleString("en-IN")}
+            </span>
+
+            {/* Discounted Price */}
+            <strong className="discounted-price">
+                ₹{Number(product.discountedPrice).toLocaleString("en-IN")}
+            </strong>
+
+            {/* Discount */}
+            <span className="discount-badge">
+                {Number(product.discountPercentage)}% OFF
+            </span>
+
+        </div>
+    ) : (
+        <strong className="discounted-price">
+            ₹{Number(product.price).toLocaleString("en-IN")}
+        </strong>
+    )}
+
+</div>
 
                                     <p>
                                         Stock: {product.stockQuantity}

@@ -9,27 +9,23 @@ import java.util.List;
 
 import com.shopstack.shopstack_backend.dto.AdminAnalyticsResponse;
 import com.shopstack.shopstack_backend.dto.AdminDashboardResponse;
-import com.shopstack.shopstack_backend.dto.VendorResponse;
-import com.shopstack.shopstack_backend.entity.Role;
-import com.shopstack.shopstack_backend.repository.UserRepository;
-import com.shopstack.shopstack_backend.repository.ProductRepository;
-import com.shopstack.shopstack_backend.repository.OrderRepository;
-import com.shopstack.shopstack_backend.entity.User;
-import com.shopstack.shopstack_backend.entity.VendorStatus;
-import com.shopstack.shopstack_backend.dto.VendorResponse;
-import com.shopstack.shopstack_backend.entity.Order;
-//import com.shopstack.shopstack_backend.entity.User;
-import com.shopstack.shopstack_backend.entity.ProductAvailability;
 import com.shopstack.shopstack_backend.dto.AdminVendorDetailsResponse;
 import com.shopstack.shopstack_backend.dto.CommissionDTO;
 import com.shopstack.shopstack_backend.dto.SystemMonitoringDTO;
-import com.shopstack.shopstack_backend.entity.User;
-import com.shopstack.shopstack_backend.entity.ProductAvailability;
-import com.shopstack.shopstack_backend.dto.AdminAnalyticsResponse;
-import com.shopstack.shopstack_backend.dto.SystemMonitoringDTO;
+import com.shopstack.shopstack_backend.dto.VendorResponse;
 
-import java.lang.management.ManagementFactory;
-import java.time.LocalDateTime;
+import com.shopstack.shopstack_backend.entity.Order;
+import com.shopstack.shopstack_backend.entity.Product;
+import com.shopstack.shopstack_backend.entity.ProductAvailability;
+import com.shopstack.shopstack_backend.entity.ProductStatus;
+import com.shopstack.shopstack_backend.entity.Role;
+import com.shopstack.shopstack_backend.entity.User;
+import com.shopstack.shopstack_backend.entity.VendorStatus;
+
+import com.shopstack.shopstack_backend.repository.OrderRepository;
+import com.shopstack.shopstack_backend.repository.ProductRepository;
+import com.shopstack.shopstack_backend.repository.UserRepository;
+
 
 @Service
 public class AdminService {
@@ -37,6 +33,11 @@ public class AdminService {
     private final UserRepository userRepository;
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+
+
+    // =========================================================
+    // CONSTRUCTOR
+    // =========================================================
 
     public AdminService(
             UserRepository userRepository,
@@ -47,6 +48,11 @@ public class AdminService {
         this.productRepository = productRepository;
         this.orderRepository = orderRepository;
     }
+
+
+    // =========================================================
+    // ADMIN DASHBOARD
+    // =========================================================
 
     public AdminDashboardResponse getDashboardData() {
 
@@ -79,6 +85,10 @@ public class AdminService {
     }
 
 
+    // =========================================================
+    // GET ALL VENDORS
+    // =========================================================
+
     public List<VendorResponse> getVendors() {
 
         return userRepository
@@ -86,79 +96,166 @@ public class AdminService {
                 .stream()
                 .map(VendorResponse::new)
                 .toList();
-                }
+    }
 
-        public List<Order> getAllOrders() {
 
-        return orderRepository.findAllByOrderByOrderDateDesc();
-        }
+    // =========================================================
+    // GET ALL ORDERS
+    // =========================================================
 
-        public User getVendor(Long id) {
+    public List<Order> getAllOrders() {
+
+        return orderRepository
+                .findAllByOrderByOrderDateDesc();
+    }
+
+
+    // =========================================================
+    // GET VENDOR
+    // =========================================================
+
+    public User getVendor(Long id) {
 
         return userRepository.findById(id)
-                .filter(user -> user.getRole() == Role.VENDOR)
+                .filter(user ->
+                        user.getRole() == Role.VENDOR
+                )
                 .orElseThrow(() ->
-                        new RuntimeException("Vendor not found")
+                        new RuntimeException(
+                                "Vendor not found"
+                        )
                 );
-        }
+    }
 
 
-        public AdminVendorDetailsResponse getVendorDetails(Long vendorId) {
+    // =========================================================
+    // GET VENDOR DETAILS
+    // =========================================================
 
-    User vendor = userRepository.findById(vendorId)
-            .filter(user -> user.getRole() == Role.VENDOR)
-            .orElseThrow(() ->
-                    new RuntimeException("Vendor not found")
-            );
+    public AdminVendorDetailsResponse getVendorDetails(
+            Long vendorId
+    ) {
 
-    long totalProducts =
-            productRepository.countByVendorId(vendorId);
-
-    long activeProducts =
-            productRepository.countByVendorIdAndAvailability(
-                    vendorId,
-                    ProductAvailability.ACTIVE
-            );
-
-    long totalOrders =
-            orderRepository.countOrdersByVendorId(vendorId);
-
-    double totalSales =
-            orderRepository.getSalesByVendorId(vendorId);
-
-    return new AdminVendorDetailsResponse(
-            vendor.getId(),
-            vendor.getName(),
-            vendor.getEmail(),
-            vendor.getRole().name(),
-            vendor.getVendorStatus(),
-            totalProducts,
-            activeProducts,
-            totalOrders,
-            totalSales
-    );
-}
+        User vendor =
+                userRepository.findById(vendorId)
+                        .filter(user ->
+                                user.getRole() == Role.VENDOR
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Vendor not found"
+                                )
+                        );
 
 
-        public AdminVendorDetailsResponse updateVendorStatus(
-                Long vendorId,
-                VendorStatus status
-        ) {
+        long totalProducts =
+                productRepository.countByVendorId(vendorId);
 
-        User vendor = userRepository.findById(vendorId)
-                .filter(user -> user.getRole() == Role.VENDOR)
-                .orElseThrow(() ->
-                        new RuntimeException("Vendor not found")
-                );
+
+        long activeProducts =
+                productRepository
+                        .countByVendorIdAndAvailability(
+                                vendorId,
+                                ProductAvailability.ACTIVE
+                        );
+
+
+        long totalOrders =
+                orderRepository
+                        .countOrdersByVendorId(vendorId);
+
+
+        double totalSales =
+                orderRepository
+                        .getSalesByVendorId(vendorId);
+
+
+        return new AdminVendorDetailsResponse(
+                vendor.getId(),
+                vendor.getName(),
+                vendor.getEmail(),
+                vendor.getRole().name(),
+                vendor.getVendorStatus(),
+                totalProducts,
+                activeProducts,
+                totalOrders,
+                totalSales
+        );
+    }
+
+
+    // =========================================================
+    // UPDATE VENDOR STATUS
+    // =========================================================
+
+    public AdminVendorDetailsResponse updateVendorStatus(
+            Long vendorId,
+            VendorStatus status
+    ) {
+
+        User vendor =
+                userRepository.findById(vendorId)
+                        .filter(user ->
+                                user.getRole() == Role.VENDOR
+                        )
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Vendor not found"
+                                )
+                        );
+
 
         vendor.setVendorStatus(status);
 
         userRepository.save(vendor);
 
         return getVendorDetails(vendorId);
-        }
+    }
 
-        public AdminAnalyticsResponse getAnalytics() {
+
+    // =========================================================
+    // GET VENDOR PRODUCTS FOR ADMIN
+    // =========================================================
+
+    public List<Product> getProductsByVendorForAdmin(
+            Long vendorId
+    ) {
+
+        return productRepository
+                .findByVendorId(vendorId);
+    }
+
+
+    // =========================================================
+    // UPDATE PRODUCT STATUS
+    // ACCEPT / REJECT PRODUCT
+    // =========================================================
+
+    public Product updateProductStatus(
+            Long productId,
+            ProductStatus status
+    ) {
+
+        Product product =
+                productRepository.findById(productId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Product not found"
+                                )
+                        );
+
+
+        product.setStatus(status);
+
+        return productRepository.save(product);
+    }
+
+
+    // =========================================================
+    // ANALYTICS
+    // =========================================================
+
+    public AdminAnalyticsResponse getAnalytics() {
 
         long totalVendors =
                 userRepository.countByRole(Role.VENDOR);
@@ -184,6 +281,7 @@ public class AdminService {
         long cancelledOrders =
                 orderRepository.countByStatus("CANCELLED");
 
+
         return new AdminAnalyticsResponse(
                 totalVendors,
                 totalProducts,
@@ -194,67 +292,92 @@ public class AdminService {
                 deliveredOrders,
                 cancelledOrders
         );
-        }
-
-        public List<CommissionDTO> getCommissionDetails() {
-
-    List<User> vendors =
-            userRepository.findByRole(Role.VENDOR);
-
-    List<CommissionDTO> result = new ArrayList<>();
-
-    double commissionRate = 10.0;
-
-    for (User vendor : vendors) {
-
-        double sales =
-                orderRepository.getSalesByVendorId(
-                        vendor.getId()
-                );
-
-        double commission =
-                sales * commissionRate / 100;
-
-        double vendorEarnings =
-                sales - commission;
-
-        CommissionDTO dto =
-                new CommissionDTO(
-                        vendor.getId(),
-                        vendor.getName(),
-                        vendor.getEmail(),
-                        sales,
-                        commissionRate,
-                        commission,
-                        vendorEarnings
-                );
-
-        result.add(dto);
     }
 
-    return result;
-}
 
-        public SystemMonitoringDTO getSystemMonitoring() {
+    // =========================================================
+    // COMMISSION DETAILS
+    // =========================================================
 
-        Runtime runtime = Runtime.getRuntime();
+    public List<CommissionDTO> getCommissionDetails() {
+
+        List<User> vendors =
+                userRepository.findByRole(Role.VENDOR);
+
+        List<CommissionDTO> result =
+                new ArrayList<>();
+
+
+        double commissionRate = 10.0;
+
+
+        for (User vendor : vendors) {
+
+            double sales =
+                    orderRepository.getSalesByVendorId(
+                            vendor.getId()
+                    );
+
+
+            double commission =
+                    sales * commissionRate / 100;
+
+
+            double vendorEarnings =
+                    sales - commission;
+
+
+            CommissionDTO dto =
+                    new CommissionDTO(
+                            vendor.getId(),
+                            vendor.getName(),
+                            vendor.getEmail(),
+                            sales,
+                            commissionRate,
+                            commission,
+                            vendorEarnings
+                    );
+
+
+            result.add(dto);
+        }
+
+
+        return result;
+    }
+
+
+    // =========================================================
+    // SYSTEM MONITORING
+    // =========================================================
+
+    public SystemMonitoringDTO getSystemMonitoring() {
+
+        Runtime runtime =
+                Runtime.getRuntime();
+
 
         long memoryUsed =
-                runtime.totalMemory() - runtime.freeMemory();
+                runtime.totalMemory()
+                        - runtime.freeMemory();
+
 
         long memoryMax =
                 runtime.maxMemory();
 
+
         String databaseStatus = "UP";
+
 
         try {
 
-                userRepository.count();
+            userRepository.count();
 
         } catch (Exception e) {
 
-                databaseStatus = "DOWN";
+            databaseStatus = "DOWN";
         }
+
 
         return new SystemMonitoringDTO(
                 "ShopStack Backend",
@@ -268,7 +391,5 @@ public class AdminService {
                 memoryMax,
                 LocalDateTime.now().toString()
         );
-        }
-
-        
+    }
 }

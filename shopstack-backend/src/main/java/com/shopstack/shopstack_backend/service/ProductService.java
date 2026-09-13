@@ -1,3 +1,4 @@
+
 package com.shopstack.shopstack_backend.service;
 
 import com.shopstack.shopstack_backend.entity.Product;
@@ -6,6 +7,7 @@ import com.shopstack.shopstack_backend.entity.ProductStatus;
 import com.shopstack.shopstack_backend.entity.User;
 import com.shopstack.shopstack_backend.repository.ProductRepository;
 import com.shopstack.shopstack_backend.repository.UserRepository;
+
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,8 +20,10 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
 
-    public ProductService(ProductRepository productRepository,
-                           UserRepository userRepository) {
+    public ProductService(
+            ProductRepository productRepository,
+            UserRepository userRepository) {
+
         this.productRepository = productRepository;
         this.userRepository = userRepository;
     }
@@ -42,15 +46,19 @@ public class ProductService {
             product.setVendor(vendor);
         }
 
-        // New product starts as PENDING
         if (product.getStatus() == null) {
             product.setStatus(ProductStatus.PENDING);
         }
 
-        // New product is available
         if (product.getAvailability() == null) {
             product.setAvailability(ProductAvailability.ACTIVE);
         }
+
+        if (product.getDiscountPercentage() == null) {
+            product.setDiscountPercentage(BigDecimal.ZERO);
+        }
+
+        validateDiscount(product.getDiscountPercentage());
 
         return productRepository.save(product);
     }
@@ -67,21 +75,17 @@ public class ProductService {
 
 
     // =========================================================
-    // Get Available Products For Customers
-    //
-    // APPROVED
-    // + ACTIVE
-    // + STOCK > 0
+    // Get Available Products
     // =========================================================
 
     public List<Product> getAvailableProducts() {
 
-    return productRepository
-            .findByAvailabilityAndStockQuantityGreaterThan(
-                    ProductAvailability.ACTIVE,
-                    0
-            );
-}
+        return productRepository
+                .findByAvailabilityAndStockQuantityGreaterThan(
+                        ProductAvailability.ACTIVE,
+                        0
+                );
+    }
 
 
     // =========================================================
@@ -96,7 +100,6 @@ public class ProductService {
 
     // =========================================================
     // Get Vendor Products
-    // Only ACTIVE products
     // =========================================================
 
     public List<Product> getProductsByVendor(Long vendorId) {
@@ -151,16 +154,77 @@ public class ProductService {
                 updatedProduct.getImageUrl()
         );
 
+        if (updatedProduct.getDiscountPercentage() != null) {
+
+            validateDiscount(
+                    updatedProduct.getDiscountPercentage()
+            );
+
+            existingProduct.setDiscountPercentage(
+                    updatedProduct.getDiscountPercentage()
+            );
+        }
+
         return productRepository.save(existingProduct);
     }
 
 
     // =========================================================
+    // Update Vendor Discount
+    // =========================================================
+
+    public Product updateDiscount(
+            Long id,
+            BigDecimal discountPercentage) {
+
+        Product product =
+                productRepository.findById(id)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Product not found"
+                                ));
+
+        validateDiscount(discountPercentage);
+
+        product.setDiscountPercentage(
+                discountPercentage
+        );
+
+        return productRepository.save(product);
+    }
+
+
+    // =========================================================
+    // Validate Discount
+    // =========================================================
+
+    private void validateDiscount(
+            BigDecimal discountPercentage) {
+
+        if (discountPercentage == null) {
+            return;
+        }
+
+        if (discountPercentage.compareTo(
+                BigDecimal.ZERO) < 0) {
+
+            throw new RuntimeException(
+                    "Discount cannot be negative"
+            );
+        }
+
+        if (discountPercentage.compareTo(
+                BigDecimal.valueOf(100)) > 0) {
+
+            throw new RuntimeException(
+                    "Discount cannot exceed 100%"
+            );
+        }
+    }
+
+
+    // =========================================================
     // Soft Delete Product
-    //
-    // Product remains in database
-    // Existing orders remain safe
-    // Product disappears from vendor/customer listings
     // =========================================================
 
     public void deleteProduct(Long id) {
@@ -279,4 +343,38 @@ public class ProductService {
 
         return productRepository.save(product);
     }
+
+
+    // =========================================================
+// ADMIN - GET ALL PRODUCTS BY VENDOR
+// =========================================================
+
+public List<Product> getAllProductsByVendor(Long vendorId) {
+
+    return productRepository.findByVendorId(vendorId);
 }
+
+
+// =========================================================
+// ADMIN - UPDATE PRODUCT STATUS
+// =========================================================
+
+public Product updateProductStatus(
+        Long productId,
+        ProductStatus status) {
+
+    Product product =
+            productRepository.findById(productId)
+                    .orElseThrow(() ->
+                            new RuntimeException(
+                                    "Product not found"
+                            ));
+
+    product.setStatus(status);
+
+    return productRepository.save(product);
+}
+
+
+}
+

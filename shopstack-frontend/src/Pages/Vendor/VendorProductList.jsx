@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import "./VendorProductList.css";
 import VendorNavbar from "../../components/VendorNavbar";
@@ -11,18 +12,23 @@ function VendorProductList() {
 
         try {
 
-            const vendorId = localStorage.getItem("userId");
+            const vendorId =
+                localStorage.getItem("userId");
 
             if (!vendorId) {
                 console.log("Vendor ID not found");
                 return;
             }
 
-            const response = await api.get(
-                `/products/vendor/${vendorId}`
-            );
+            const response =
+                await api.get(
+                    `/products/vendor/${vendorId}`
+                );
 
-            console.log("Vendor products:", response.data);
+            console.log(
+                "Vendor products:",
+                response.data
+            );
 
             setProducts(response.data);
 
@@ -32,9 +38,7 @@ function VendorProductList() {
                 "Error fetching products:",
                 error
             );
-
         }
-
     };
 
 
@@ -45,22 +49,73 @@ function VendorProductList() {
     }, []);
 
 
+    const updateDiscount = async (
+        productId,
+        discountPercentage
+    ) => {
+
+        try {
+
+            const discount =
+                Number(discountPercentage);
+
+
+            if (
+                Number.isNaN(discount) ||
+                discount < 0 ||
+                discount > 100
+            ) {
+
+                alert(
+                    "Discount must be between 0% and 100%"
+                );
+
+                return;
+            }
+
+
+            await api.put(
+                `/products/${productId}/discount`,
+                {
+                    discountPercentage:
+                        discount
+                }
+            );
+
+
+            alert(
+                "Discount updated successfully"
+            );
+
+
+            await fetchProducts();
+
+        } catch (error) {
+
+            console.error(
+                "Discount update error:",
+                error
+            );
+
+            alert(
+                error.response?.data ||
+                "Unable to update discount"
+            );
+        }
+    };
+
+
     const deleteProduct = async (id) => {
 
         try {
 
-            console.log("Deleting product:", id);
-
-            const response = await api.delete(
+            await api.delete(
                 `/products/${id}`
             );
 
-            console.log(
-                "Delete response:",
-                response.data
+            alert(
+                "Product deleted successfully"
             );
-
-            alert("Product deleted successfully");
 
             await fetchProducts();
 
@@ -71,26 +126,10 @@ function VendorProductList() {
                 error
             );
 
-            if (error.response) {
-
-                console.log(
-                    "Status:",
-                    error.response.status
-                );
-
-                console.log(
-                    "Response:",
-                    error.response.data
-                );
-
-            }
-
             alert(
                 "Unable to delete product"
             );
-
         }
-
     };
 
 
@@ -100,61 +139,169 @@ function VendorProductList() {
 
             <VendorNavbar />
 
+
             <div className="product-list-container">
 
-                <h1>My Products</h1>
+                <h1>
+                    My Products
+                </h1>
+
 
                 <div className="product-grid">
 
                     {products.length === 0 ? (
 
-                        <p>No products available.</p>
+                        <p>
+                            No products available.
+                        </p>
 
                     ) : (
 
-                        products.map((product) => (
+                        products.map((product) => {
 
-                            <div
-                                className="product-card"
-                                key={product.id}
-                            >
+                            const discount =
+                                Number(
+                                    product.discountPercentage || 0
+                                );
 
-                                <img
-                                    src={product.imageUrl}
-                                    alt={product.productName}
-                                />
+                            const originalPrice =
+                                Number(
+                                    product.price || 0
+                                );
 
-                                <h3>
-                                    {product.productName}
-                                </h3>
+                            const discountedPrice =
+                                product.discountedPrice !== undefined
+                                    ? Number(
+                                        product.discountedPrice
+                                    )
+                                    : originalPrice *
+                                      (1 - discount / 100);
 
-                                <p>
-                                    Brand: {product.brand}
-                                </p>
 
-                                <p>
-                                    Price: ₹{product.price}
-                                </p>
+                            return (
 
-                                <p>
-                                    Stock: {product.stockQuantity}
-                                </p>
-
-                                <p>
-                                    Status: {product.status}
-                                </p>
-
-                                <button
-                                    onClick={() =>
-                                        deleteProduct(product.id)
-                                    }
+                                <div
+                                    className="product-card"
+                                    key={product.id}
                                 >
-                                    Delete
-                                </button>
 
-                            </div>
+                                    <img
+                                        src={
+                                            product.imageUrl
+                                        }
+                                        alt={
+                                            product.productName
+                                        }
+                                    />
 
-                        ))
+
+                                    <h3>
+                                        {product.productName}
+                                    </h3>
+
+
+                                    <p>
+                                        Brand:{" "}
+                                        {product.brand}
+                                    </p>
+
+
+                                    <p>
+                                        Original Price:
+                                        ₹
+                                        {originalPrice.toLocaleString(
+                                            "en-IN"
+                                        )}
+                                    </p>
+
+
+                                    <p>
+                                        Discount:
+                                        {" "}
+                                        {discount}%
+                                    </p>
+
+
+                                    <p className="vendor-selling-price">
+
+                                        Selling Price:
+                                        {" "}
+                                        ₹
+                                        {discountedPrice.toLocaleString(
+                                            "en-IN",
+                                            {
+                                                maximumFractionDigits: 2
+                                            }
+                                        )}
+
+                                    </p>
+
+
+                                    <p>
+                                        Stock:
+                                        {" "}
+                                        {product.stockQuantity}
+                                    </p>
+
+
+                                    <p>
+                                        Status:
+                                        {" "}
+                                        {product.status}
+                                    </p>
+
+
+                                    <div className="discount-editor">
+
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            max="100"
+                                            step="0.01"
+                                            defaultValue={
+                                                discount
+                                            }
+                                            id={`discount-${product.id}`}
+                                        />
+
+
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+
+                                                const input =
+                                                    document.getElementById(
+                                                        `discount-${product.id}`
+                                                    );
+
+                                                updateDiscount(
+                                                    product.id,
+                                                    input.value
+                                                );
+
+                                            }}
+                                        >
+                                            Update Discount
+                                        </button>
+
+                                    </div>
+
+
+                                    <button
+                                        onClick={() =>
+                                            deleteProduct(
+                                                product.id
+                                            )
+                                        }
+                                    >
+                                        Delete
+                                    </button>
+
+                                </div>
+
+                            );
+
+                        })
 
                     )}
 
@@ -165,7 +312,7 @@ function VendorProductList() {
         </>
 
     );
-
 }
 
 export default VendorProductList;
+

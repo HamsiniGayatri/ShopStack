@@ -27,6 +27,11 @@ import AdminAnalytics from "./Pages/Admin/AdminAnalytics";
 import AdminCommissions from "./Pages/Admin/AdminCommissions";
 import AdminSystemMonitoring from "./Pages/Admin/AdminSystemMonitoring";
 import AdminReports from "./Pages/Admin/AdminReports";
+import AdminWarehouseManagement from "./Pages/Admin/AdminWarehouseManagement";
+import AdminShipmentManagement from "./Pages/Admin/AdminShipmentManagement";
+import AdminShipmentDetails from "./Pages/Admin/AdminShipmentDetails";
+import CustomerOrderTracking from "./components/customer/CustomerOrderTracking";
+
 
 function App() {
 
@@ -148,6 +153,24 @@ function App() {
         <Route
             path="/admin/reports"
             element={<AdminReports />}
+        />
+
+        <Route
+            path="/admin/warehouses"
+            element={<AdminWarehouseManagement />}
+        />
+        <Route
+            path="/admin/shipments"
+            element={<AdminShipmentManagement />}
+        />
+
+        <Route
+            path="/admin/shipments/:id"
+            element={<AdminShipmentDetails />}
+        />
+        <Route
+            path="/customer/orders/:orderId/tracking"
+            element={<CustomerOrderTracking />}
         />
       </Routes>
 

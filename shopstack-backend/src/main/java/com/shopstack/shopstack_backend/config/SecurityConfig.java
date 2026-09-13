@@ -64,12 +64,23 @@ public class SecurityConfig {
                 .requestMatchers("/vendor/**").permitAll()
 
                 .requestMatchers("/orders/**").permitAll()
+                .requestMatchers("/orders").permitAll()
 
                 .requestMatchers("/reviews/**").permitAll()
 
                 .requestMatchers("/payments/**").permitAll()
 
                 .requestMatchers("/admin/**").permitAll()
+
+                .requestMatchers("/coupons/**").permitAll()
+
+                .requestMatchers("/coupons/validate").permitAll()
+
+                // Warehouse
+                .requestMatchers("/warehouse/**").permitAll()
+
+                // Shipping
+                .requestMatchers("/shipping/**").permitAll()
 
                 .anyRequest().authenticated()
             );
