@@ -103,7 +103,10 @@ public class SecurityConfig {
             new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-            List.of("https://shopstack-frontend-beta.vercel.app/")
+           List.of(
+                "http://localhost:3000",
+                "https://*.vercel.app" // This allows any Vercel URL generated for your project
+            )
         );
 
         configuration.setAllowedMethods(
