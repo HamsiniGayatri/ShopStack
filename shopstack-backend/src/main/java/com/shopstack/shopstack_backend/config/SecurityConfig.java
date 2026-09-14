@@ -103,7 +103,7 @@ public class SecurityConfig {
             new CorsConfiguration();
 
         configuration.setAllowedOrigins(
-            List.of("http://localhost:3000")
+            List.of("https://shopstack-frontend-beta.vercel.app/")
         );
 
         configuration.setAllowedMethods(
