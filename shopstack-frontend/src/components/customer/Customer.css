@@ -2503,8 +2503,8 @@
 
 .product-card-actions {
     display: flex;
-    align-items: stretch;
-    gap: 8px;
+    align-items: center;
+    gap: 7px;
 
     margin-top: 14px;
     padding: 0 17px 18px;
@@ -2514,12 +2514,13 @@
 
 
 /* =========================================
-   WISHLIST BUTTON
+   WISHLIST - SMALL HEART BUTTON
    ========================================= */
 
 .wishlist-icon-btn {
-    width: 44px;
-    min-width: 44px;
+    flex: 0 0 36px;
+
+    width: 36px;
     height: 40px;
 
     display: flex;
@@ -2534,7 +2535,7 @@
     background: #ffffff;
     color: #e63946;
 
-    font-size: 25px;
+    font-size: 22px;
     line-height: 1;
 
     cursor: pointer;
@@ -2560,12 +2561,16 @@
 
     height: 40px;
 
+    min-width: 0;
+
     padding: 0 8px;
 
     border-radius: 7px;
 
     font-size: 12px;
     font-weight: 600;
+
+    white-space: nowrap;
 
     cursor: pointer;
 
@@ -2575,7 +2580,9 @@
 }
 
 
-/* BUY NOW */
+/* =========================================
+   BUY NOW
+   ========================================= */
 
 .buy-now-btn {
     border: 1px solid #0f4c81;
@@ -2590,7 +2597,9 @@
 }
 
 
-/* ADD TO CART */
+/* =========================================
+   ADD TO CART
+   ========================================= */
 
 .add-to-cart-btn {
     border: 1px solid #0f4c81;
@@ -2615,8 +2624,8 @@
     }
 
     .wishlist-icon-btn {
-        width: 42px;
-        min-width: 42px;
+        flex-basis: 34px;
+        width: 34px;
     }
 
     .buy-now-btn,
