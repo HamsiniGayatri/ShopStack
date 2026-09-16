@@ -2504,23 +2504,16 @@
 .product-card-actions {
     display: flex;
     align-items: center;
-    gap: 7px;
-
+    gap: 6px;
     margin-top: 14px;
     padding: 0 17px 18px;
-
     box-sizing: border-box;
 }
 
-
-/* =========================================
-   WISHLIST - SMALL HEART BUTTON
-   ========================================= */
-
+/* Smaller Wishlist button */
 .wishlist-icon-btn {
-    flex: 0 0 36px;
-
-    width: 36px;
+    flex: 0 0 30px;
+    width: 30px;
     height: 40px;
 
     display: flex;
@@ -2535,102 +2528,51 @@
     background: #ffffff;
     color: #e63946;
 
-    font-size: 22px;
+    font-size: 20px;
     line-height: 1;
 
     cursor: pointer;
-
     box-sizing: border-box;
-
-    transition: 0.2s ease;
 }
 
-.wishlist-icon-btn:hover {
-    background: #fff0f1;
-    border-color: #e63946;
-}
-
-
-/* =========================================
-   BUY NOW + ADD TO CART
-   ========================================= */
-
+/* Buy Now + Add to Cart get most of the space */
 .buy-now-btn,
 .add-to-cart-btn {
-    flex: 1;
-
+    flex: 1 1 0;
+    min-width: 0;
     height: 40px;
 
-    min-width: 0;
-
-    padding: 0 8px;
+    padding: 0 6px;
 
     border-radius: 7px;
-
     font-size: 12px;
     font-weight: 600;
 
     white-space: nowrap;
-
     cursor: pointer;
-
     box-sizing: border-box;
-
-    transition: 0.2s ease;
 }
-
-
-/* =========================================
-   BUY NOW
-   ========================================= */
 
 .buy-now-btn {
     border: 1px solid #0f4c81;
-
     background: #0f4c81;
-    color: #ffffff;
+    color: white;
+}
+
+.add-to-cart-btn {
+    border: 1px solid #0f4c81;
+    background: #f1f5f9;
+    color: #0f4c81;
 }
 
 .buy-now-btn:hover {
     background: #09355d;
-    border-color: #09355d;
-}
-
-
-/* =========================================
-   ADD TO CART
-   ========================================= */
-
-.add-to-cart-btn {
-    border: 1px solid #0f4c81;
-
-    background: #f1f5f9;
-    color: #0f4c81;
 }
 
 .add-to-cart-btn:hover {
     background: #e2eaf2;
 }
 
-
-/* =========================================
-   MOBILE
-   ========================================= */
-
-@media (max-width: 500px) {
-
-    .product-card-actions {
-        gap: 6px;
-    }
-
-    .wishlist-icon-btn {
-        flex-basis: 34px;
-        width: 34px;
-    }
-
-    .buy-now-btn,
-    .add-to-cart-btn {
-        font-size: 11px;
-        padding: 0 5px;
-    }
+.wishlist-icon-btn:hover {
+    background: #fff0f1;
 }
