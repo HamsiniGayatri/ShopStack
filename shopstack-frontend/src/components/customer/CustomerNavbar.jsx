@@ -7,7 +7,7 @@ function CustomerNavbar() {
     const logout = () => {
         localStorage.removeItem("userId");
         localStorage.removeItem("role");
-        navigate("/login");
+        navigate("/");
     };
 
     return (
