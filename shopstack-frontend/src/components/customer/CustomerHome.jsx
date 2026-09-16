@@ -517,21 +517,35 @@ function CustomerHome() {
                                         Stock: {product.stockQuantity}
                                     </p>
 
-                                    <div>
+                                    
+                            <div className="product-card-actions">
 
-                                        <button
-                                            onClick={() => addToWishlist(product)}
-                                        >
-                                            Add to Wishlist
-                                        </button>
+                                <button
+                                    className="wishlist-icon-btn"
+                                    onClick={() => addToWishlist(product)}
+                                    title="Add to Wishlist"
+                                    aria-label="Add to Wishlist"
+                                >
+                                    ♡
+                                </button>
 
-                                        <button
-                                            onClick={() => addToCart(product)}
-                                        >
-                                            Add to Cart
-                                        </button>
+                                <button
+                                    className="buy-now-btn"
+                                    onClick={() => {
+                                        addToCart(product);
+                                    }}
+                                >
+                                    Buy Now
+                                </button>
 
-                                    </div>
+                                <button
+                                    className="add-to-cart-btn"
+                                    onClick={() => addToCart(product)}
+                                >
+                                    Add to Cart
+                                </button>
+
+                            </div>
 
                                 </div>
 
