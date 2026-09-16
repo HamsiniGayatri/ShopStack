@@ -2498,29 +2498,39 @@
 }
 
 /* =========================================
-   PRODUCT CARD ACTION BUTTONS
+   PRODUCT CARD ACTIONS
    ========================================= */
 
 .product-card-actions {
     display: flex;
     align-items: center;
     gap: 6px;
+
     margin-top: 14px;
     padding: 0 17px 18px;
+
     box-sizing: border-box;
 }
 
-/* Smaller Wishlist button */
-.wishlist-icon-btn {
-    flex: 0 0 30px;
-    width: 30px;
+
+/* =========================================
+   ADD TO WISHLIST - SMALL BUTTON
+   ========================================= */
+
+.customer-product-card .product-card-actions .wishlist-icon-btn {
+    flex: 0 0 28px !important;
+
+    width: 28px !important;
+    min-width: 28px !important;
+    max-width: 28px !important;
+
     height: 40px;
 
     display: flex;
     align-items: center;
     justify-content: center;
 
-    padding: 0;
+    padding: 0 !important;
 
     border: 1px solid #d8dde5;
     border-radius: 7px;
@@ -2533,46 +2543,99 @@
 
     cursor: pointer;
     box-sizing: border-box;
+
+    transition: 0.2s ease;
 }
 
-/* Buy Now + Add to Cart get most of the space */
-.buy-now-btn,
-.add-to-cart-btn {
-    flex: 1 1 0;
-    min-width: 0;
+.customer-product-card .product-card-actions .wishlist-icon-btn:hover {
+    background: #fff0f1;
+    border-color: #e63946;
+}
+
+
+/* =========================================
+   BUY NOW + ADD TO CART
+   ========================================= */
+
+.customer-product-card .product-card-actions .buy-now-btn,
+.customer-product-card .product-card-actions .add-to-cart-btn {
+    flex: 1 1 0 !important;
+
+    min-width: 0 !important;
+
+    width: auto;
+
     height: 40px;
 
-    padding: 0 6px;
+    padding: 0 6px !important;
 
     border-radius: 7px;
+
     font-size: 12px;
     font-weight: 600;
 
     white-space: nowrap;
+
     cursor: pointer;
     box-sizing: border-box;
+
+    transition: 0.2s ease;
 }
 
-.buy-now-btn {
+
+/* =========================================
+   BUY NOW
+   ========================================= */
+
+.customer-product-card .product-card-actions .buy-now-btn {
     border: 1px solid #0f4c81;
+
     background: #0f4c81;
-    color: white;
+    color: #ffffff;
 }
 
-.add-to-cart-btn {
+.customer-product-card .product-card-actions .buy-now-btn:hover {
+    background: #09355d;
+    border-color: #09355d;
+}
+
+
+/* =========================================
+   ADD TO CART
+   ========================================= */
+
+.customer-product-card .product-card-actions .add-to-cart-btn {
     border: 1px solid #0f4c81;
+
     background: #f1f5f9;
     color: #0f4c81;
 }
 
-.buy-now-btn:hover {
-    background: #09355d;
-}
-
-.add-to-cart-btn:hover {
+.customer-product-card .product-card-actions .add-to-cart-btn:hover {
     background: #e2eaf2;
 }
 
-.wishlist-icon-btn:hover {
-    background: #fff0f1;
+
+/* =========================================
+   MOBILE
+   ========================================= */
+
+@media (max-width: 500px) {
+
+    .product-card-actions {
+        gap: 5px;
+    }
+
+    .customer-product-card .product-card-actions .wishlist-icon-btn {
+        flex-basis: 26px !important;
+        width: 26px !important;
+        min-width: 26px !important;
+        max-width: 26px !important;
+    }
+
+    .customer-product-card .product-card-actions .buy-now-btn,
+    .customer-product-card .product-card-actions .add-to-cart-btn {
+        font-size: 11px;
+        padding: 0 4px !important;
+    }
 }
